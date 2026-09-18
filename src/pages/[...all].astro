@@ -1,0 +1,28 @@
+---
+// Catch-all so deep links (e.g. /watches/:id) hydrate the same SPA shell.
+// React Router reads window.location and renders the correct route.
+import SpaLayout from '@/layouts/SpaLayout.astro';
+
+// Static output needs concrete paths. Client-side navigation handles dynamic
+// identifiers after the shell has loaded.
+export function getStaticPaths() {
+  return [
+    'login',
+    'register',
+    'verify-email',
+    'request-password-reset',
+    'reset-password',
+    'watches',
+    'watches/new',
+    'trades',
+    'lookup',
+    'clients',
+    'clients/new',
+    'profile',
+    'activity',
+    'brands',
+  ].map((all) => ({ params: { all } }));
+}
+---
+
+<SpaLayout />

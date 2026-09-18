@@ -1,0 +1,260 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  :root {
+    --ink: 31 30 28;
+    --ink-soft: 81 79 75;
+    --ink-faint: 138 135 129;
+    --surface-page: 233 232 229;
+    --surface-card: 244 243 241;
+    --surface-header: 248 248 247;
+    --surface-field: 255 255 255;
+    --surface-line: 217 215 211;
+  }
+  .dark {
+    --ink: 236 233 228;
+    --ink-soft: 181 177 170;
+    --ink-faint: 133 127 120;
+    --surface-page: 23 22 20;
+    --surface-card: 32 30 28;
+    --surface-header: 27 26 24;
+    --surface-field: 38 36 31;
+    --surface-line: 53 50 46;
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-surface-page font-sans text-ink antialiased;
+  }
+  * {
+    @apply border-surface-line;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-surface-line bg-surface-card shadow-sm;
+  }
+  .input {
+    @apply block w-full rounded-lg border border-surface-line bg-surface-field px-3 py-2 text-sm text-ink shadow-sm outline-none transition placeholder:text-ink-faint focus:border-brand-400 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:bg-ink/10;
+  }
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wider text-ink-soft;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn border border-brand-600/60 bg-gradient-to-b from-brand-300 to-brand-500 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.4),0_2px_6px_-2px_rgb(0_0_0/0.3)] hover:from-brand-400 hover:to-brand-600 active:from-brand-500 active:to-brand-600;
+  }
+  .btn-secondary {
+    @apply btn border border-surface-line bg-surface-header text-ink hover:bg-surface-field active:bg-ink/10;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700 active:bg-red-800;
+  }
+  .btn-ghost {
+    @apply btn text-ink-soft hover:bg-ink/10;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full bg-ink/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-ink-soft;
+  }
+  .avatar {
+    @apply grid place-items-center rounded-full bg-brand-400 font-display font-semibold text-white;
+  }
+}
+
+/* Smooth light ↔ dark cross-fade via the View Transitions API */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: ease;
+  animation-delay: 0s;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Fallback cross-fade for engines without view transitions */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    stroke 300ms ease,
+    box-shadow 300ms ease !important;
+  transition-delay: 0s !important;
+}
+
+/* Safe area for installed PWA */
+main {
+  padding-top: env(safe-area-inset-top);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast {
+  animation: toast-in 180ms ease-out;
+}
+
+@layer components {
+  /* ── Motion system ─────────────────────────────────── */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Route change: keyed wrapper replays the entrance */
+  .page-enter {
+    animation: fade-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Staggered list/grid entrances */
+  .stagger > * {
+    animation: fade-up 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger > *:nth-child(2) { animation-delay: 45ms; }
+  .stagger > *:nth-child(3) { animation-delay: 90ms; }
+  .stagger > *:nth-child(4) { animation-delay: 135ms; }
+  .stagger > *:nth-child(5) { animation-delay: 180ms; }
+  .stagger > *:nth-child(6) { animation-delay: 225ms; }
+  .stagger > *:nth-child(n + 7) { animation-delay: 270ms; }
+
+  .animate-fade-in {
+    animation: fade-in 200ms ease-out both;
+  }
+  .animate-pop-in {
+    animation: pop-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top right;
+  }
+  .modal-panel {
+    animation: slide-up 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @media (min-width: 640px) {
+    .modal-panel {
+      animation-name: pop-in;
+    }
+  }
+  .backdrop-fade {
+    animation: fade-in 200ms ease-out both;
+  }
+
+  /* Cards lift on hover */
+  .card-lift {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, border-color 200ms ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.35);
+  }
+
+  /* Buttons: springy press */
+  .btn {
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+      box-shadow 150ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .btn:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  /* Loading shimmer skeleton */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--surface-line) / 0.5) 25%,
+      rgb(var(--surface-line)) 50%,
+      rgb(var(--surface-line) / 0.5) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter,
+    .page-enter > *,
+    .stagger > *,
+    .animate-fade-in,
+    .animate-pop-in,
+    .modal-panel,
+    .backdrop-fade,
+    .toast,
+    .shimmer {
+      animation: none;
+    }
+    .card-lift:hover {
+      transform: none;
+    }
+    .btn:not(:disabled):active {
+      transform: none;
+    }
+  }
+}
