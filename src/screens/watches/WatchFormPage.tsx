@@ -486,6 +486,7 @@ export default function WatchFormPage() {
                 <Select id="buyerKind" value={sale.buyerKind} onChange={setSaleField('buyerKind')} disabled={submitting}>
                   <option value="external">External buyer (non-platform)</option>
                   <option value="platform">Platform user</option>
+                  <option value="client">CRM client</option>
                 </Select>
               </Field>
 

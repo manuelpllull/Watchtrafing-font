@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost, apiPut } from './client';
 import type {
   CompleteTradeRequest,
   CounterpartyHistoryResponse,
@@ -10,6 +10,16 @@ import type {
 export const tradesApi = {
   create: (body: CreateTradeRequest) =>
     apiPost<{ tradeId: string }>('trades', body),
+  update: (
+    id: string,
+    body: {
+      salePrice: number;
+      saleDate: string;
+      buyerUserId?: string | null;
+      buyerClientId?: string | null;
+      buyerExternalName?: string | null;
+    },
+  ) => apiPut<void>(`trades/${id}`, body),
   getById: (id: string) => apiGet<TradeResponse>(`trades/${id}`),
   getByWatch: (watchId: string) =>
     apiGet<TradeResponse[]>(`watches/${watchId}/trades`),

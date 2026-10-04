@@ -26,6 +26,7 @@ export enum ExpenseType {
   Service = 1,
   Accessory = 2,
   MissingPart = 3,
+  Shipping = 4,
 }
 
 export type ShareStatus = 'Pending' | 'Accepted' | 'Rejected';
@@ -393,4 +394,5 @@ export const EXPENSE_LABELS: Record<ExpenseType, string> = {
   [ExpenseType.Service]: 'Service',
   [ExpenseType.Accessory]: 'Accessory',
   [ExpenseType.MissingPart]: 'Missing part',
+  [ExpenseType.Shipping]: 'Shipping',
 };

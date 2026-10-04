@@ -19,6 +19,10 @@ export const watchesApi = {
   remove: (id: string) => apiDelete<void>(`watches/${id}`),
   addExpense: (watchId: string, body: AddExpenseRequest) =>
     apiPost<{ expenseId: string }>(`watches/${watchId}/expenses`, body),
+  updateExpense: (watchId: string, expenseId: string, body: AddExpenseRequest) =>
+    apiPut<void>(`watches/${watchId}/expenses/${expenseId}`, body),
+  removeExpense: (watchId: string, expenseId: string) =>
+    apiDelete<void>(`watches/${watchId}/expenses/${expenseId}`),
   addShare: (watchId: string, body: AddShareRequest) =>
     apiPost<{ shareId: string }>(`watches/${watchId}/shares`, body),
   getShares: (watchId: string) =>

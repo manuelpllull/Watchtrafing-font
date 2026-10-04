@@ -2,15 +2,17 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tradesApi } from '@/api/trades';
+import { clientsApi } from '@/api/clients';
+import { usersApi } from '@/api/users';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { TradeStatusBadge } from '@/components/ui/Badge';
-import { Field, Input } from '@/components/ui/Field';
+import { Field, Input, Select } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
-import { formatDate, formatDateTime, formatMoney, formatPercent } from '@/lib/format';
-import { TradeStatus } from '@/api/types';
+import { formatDate, formatDateTime, formatMoney, formatPercent, fromIsoDateTime } from '@/lib/format';
+import { TradeStatus, type TradeResponse } from '@/api/types';
 
 const QUERY_KEY = (id: string) => ['trade', id];
 
@@ -28,6 +30,7 @@ export default function TradeDetailPage() {
 
   const [inTransitOpen, setInTransitOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: QUERY_KEY(tradeId!) });
@@ -95,10 +98,15 @@ export default function TradeDetailPage() {
           <Detail label="Shipping ref" value={t.shippingReference || '—'} />
         </dl>
 
-        <div className="mt-4 flex text-sm">
+        <div className="mt-4 flex items-center justify-between text-sm">
           <Link to={`/watches/${t.watchId}`} className="font-medium text-brand-600 hover:underline">
             View watch →
           </Link>
+          {t.status !== TradeStatus.Cancelled && (
+            <button type="button" className="btn-secondary px-3 py-1.5 text-[13px]" onClick={() => setEditOpen(true)}>
+              Edit trade
+            </button>
+          )}
         </div>
 
         {(pending || t.status === TradeStatus.InTransit) && (
@@ -199,6 +207,9 @@ export default function TradeDetailPage() {
       {completeOpen && (
         <CompleteModal tradeId={t.id} onClose={() => setCompleteOpen(false)} />
       )}
+      {editOpen && (
+        <EditTradeModal trade={t} onClose={() => setEditOpen(false)} />
+      )}
       {dialog}
     </div>
   );
@@ -284,6 +295,153 @@ function CompleteModal({ tradeId, onClose }: { tradeId: string; onClose: () => v
         <Input value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} />
       </Field>
     </ModalField>
+  );
+}
+
+// ── Edit trade modal ───────────────────────────────────
+function EditTradeModal({ trade, onClose }: { trade: TradeResponse; onClose: () => void }) {
+  const { notify } = useToast();
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    salePrice: String(trade.salePrice),
+    saleDate: fromIsoDateTime(trade.saleDate),
+    buyerKind: trade.buyerUserId ? 'platform' : trade.buyerClientId ? 'client' : 'external',
+    buyerUserName: trade.buyerUserName || '',
+    buyerClientId: trade.buyerClientId || '',
+    buyerExternalName: trade.buyerExternalName || '',
+  });
+  const [buyerLookup, setBuyerLookup] = useState({
+    loading: false,
+    result: null as { id: string; userName: string } | null,
+    error: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const clients = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientsApi.list(),
+    enabled: form.buyerKind === 'client',
+  });
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const doLookup = async () => {
+    setBuyerLookup({ loading: true, result: null, error: '' });
+    try {
+      const p = await usersApi.lookupByUsername(form.buyerUserName.trim());
+      setBuyerLookup({ loading: false, result: { id: p.id, userName: p.userName }, error: '' });
+    } catch {
+      setBuyerLookup({ loading: false, result: null, error: 'User not found.' });
+    }
+  };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const buyerUserId =
+        form.buyerKind === 'platform' ? buyerLookup.result?.id ?? null : null;
+      const buyerClientId = form.buyerKind === 'client' ? form.buyerClientId || null : null;
+      const buyerExternalName =
+        form.buyerKind === 'external' ? form.buyerExternalName.trim() || null : null;
+
+      if (form.buyerKind === 'platform' && !buyerUserId) {
+        notify('Look up the buyer by username first.', 'error');
+        return;
+      }
+      if (form.buyerKind === 'client' && !buyerClientId) {
+        notify('Choose a CRM client.', 'error');
+        return;
+      }
+      if (form.buyerKind === 'external' && !buyerExternalName) {
+        notify('Enter the external buyer name.', 'error');
+        return;
+      }
+
+      await tradesApi.update(trade.id, {
+        salePrice: Number(form.salePrice),
+        saleDate: new Date(form.saleDate).toISOString(),
+        buyerUserId,
+        buyerClientId,
+        buyerExternalName,
+      });
+      await qc.invalidateQueries({ queryKey: QUERY_KEY(trade.id) });
+      await qc.invalidateQueries({ queryKey: ['allMyTrades'] });
+      await qc.invalidateQueries({ queryKey: ['myWatches'] });
+      notify('Trade updated.', 'success');
+      onClose();
+    } catch (err) {
+      notify(getMessage(err), 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Edit trade"
+      footer={
+        <>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+          <button type="submit" className="btn-primary" form="modal-edit-trade" disabled={submitting}>
+            {submitting ? 'Saving…' : 'Save changes'}
+          </button>
+        </>
+      }
+    >
+      <p className="mb-4 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:bg-brand-500/15 dark:text-brand-300">
+        If the buyer is a platform user, editing resets the trade to pending — they must confirm the new terms.
+      </p>
+      <form id="modal-edit-trade" onSubmit={submit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Sale price" required>
+            <Input type="number" step="0.01" min="0" value={form.salePrice} onChange={set('salePrice')} required />
+          </Field>
+          <Field label="Sale date" required>
+            <Input type="datetime-local" value={form.saleDate} onChange={set('saleDate')} required />
+          </Field>
+        </div>
+        <Field label="Buyer">
+          <Select value={form.buyerKind} onChange={set('buyerKind')}>
+            <option value="external">External buyer (non-platform)</option>
+            <option value="platform">Platform user</option>
+            <option value="client">CRM client</option>
+          </Select>
+        </Field>
+        {form.buyerKind === 'platform' && (
+          <Field label="Buyer username" required>
+            <div className="flex gap-2">
+              <Input value={form.buyerUserName} onChange={set('buyerUserName')} placeholder="e.g. johndoe" />
+              <button type="button" className="btn-secondary shrink-0" onClick={doLookup} disabled={buyerLookup.loading || !form.buyerUserName.trim()}>
+                {buyerLookup.loading ? <Spinner /> : 'Look up'}
+              </button>
+            </div>
+            {buyerLookup.error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{buyerLookup.error}</p>}
+            {buyerLookup.result && <p className="mt-1 text-sm text-brand-700 dark:text-brand-300">Found @{buyerLookup.result.userName}.</p>}
+          </Field>
+        )}
+        {form.buyerKind === 'client' && (
+          <Field label="CRM client" required>
+            <Select value={form.buyerClientId} onChange={set('buyerClientId')}>
+              <option value="">Choose a client…</option>
+              {clients.data?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.linkedUserName ? ` · @${c.linkedUserName}` : ' · external'}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        {form.buyerKind === 'external' && (
+          <Field label="External buyer name" required>
+            <Input value={form.buyerExternalName} onChange={set('buyerExternalName')} placeholder="Local dealer" />
+          </Field>
+        )}
+      </form>
+    </Modal>
   );
 }
 

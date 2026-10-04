@@ -20,7 +20,7 @@ import {
   formatMoney,
   formatPercent,
 } from '@/lib/format';
-import { ExpenseType } from '@/api/types';
+import { ExpenseType, type AdditionalExpense } from '@/api/types';
 
 export default function WatchDetailPage() {
   const { watchId } = useParams<{ watchId: string }>();
@@ -30,6 +30,7 @@ export default function WatchDetailPage() {
   const { confirm, dialog } = useConfirm();
 
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<AdditionalExpense | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
 
   const watch = useQuery({
@@ -53,10 +54,30 @@ export default function WatchDetailPage() {
     },
   });
 
+  const removeExpense = useMutation({
+    mutationFn: (expenseId: string) => watchesApi.removeExpense(watchId!, expenseId),
+    onSuccess: async () => {
+      notify('Expense removed.', 'success');
+      await qc.invalidateQueries({ queryKey: ['watch', watchId] });
+      await qc.invalidateQueries({ queryKey: ['myWatches'] });
+    },
+  });
+
+  const onDeleteExpense = async (expenseId: string, title: string) => {
+    const ok = await confirm({
+      title: 'Delete expense?',
+      message: `Remove "${title}" from this watch? Profit will be recalculated.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    removeExpense.mutate(expenseId);
+  };
+
   const onDelete = async () => {
     const ok = await confirm({
       title: 'Delete watch?',
-      message: 'The watch will be permanently deleted, along with any pending or cancelled trades on it. This cannot be undone.',
+      message: 'The watch will be permanently deleted, along with any trades on it — including completed sales. This cannot be undone.',
       confirmLabel: 'Delete',
       tone: 'danger',
     });
@@ -184,20 +205,32 @@ export default function WatchDetailPage() {
         ) : (
           <ul className="card divide-y divide-surface-line">
             {w.additionalExpenses.map((ex) => (
-              <li key={ex.id} className="flex items-center justify-between px-4 py-3">
+              <li key={ex.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div>
                   <p className="text-sm font-medium">{ex.title} <span className="text-xs text-ink-faint">· {expenseLabel(ex.expenseType)}</span></p>
                   <p className="text-xs text-ink-soft">{ex.description}</p>
                 </div>
-                <span className="text-sm font-semibold text-red-600 dark:text-red-400">−{formatMoney(ex.cost)}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-sm font-semibold text-red-600 dark:text-red-400">−{formatMoney(ex.cost)}</span>
+                  <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => setEditingExpense(ex)}>Edit</button>
+                  <button type="button" className="btn-ghost px-2 py-1 text-xs text-red-600 dark:text-red-400" onClick={() => onDeleteExpense(ex.id, ex.title)} disabled={removeExpense.isPending}>Delete</button>
+                </div>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      {expenseOpen && (
+      {expenseOpen && !editingExpense && (
         <ExpenseModal watchId={w.id} onClose={() => setExpenseOpen(false)} onDone={() => setExpenseOpen(false)} />
+      )}
+      {editingExpense && (
+        <ExpenseModal
+          watchId={w.id}
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
+          onDone={() => setEditingExpense(null)}
+        />
       )}
       {shareOpen && (
         <ShareModal watchId={w.id} onClose={() => setShareOpen(false)} onDone={() => setShareOpen(false)} />
@@ -217,24 +250,26 @@ function Detail({ label, value, sub }: { label: string; value: string; sub?: str
   );
 }
 
-// ── Add expense modal ──────────────────────────────────
+// ── Add / edit expense modal ───────────────────────────
 function ExpenseModal({
   watchId,
+  expense,
   onClose,
   onDone,
 }: {
   watchId: string;
+  expense?: AdditionalExpense;
   onClose: () => void;
   onDone: () => void;
 }) {
   const { notify } = useToast();
   const qc = useQueryClient();
   const [form, setForm] = useState({
-    title: '',
-    cost: '',
-    expenseType: String(ExpenseType.Service),
-    description: '',
-    paidByExternalName: '',
+    title: expense?.title ?? '',
+    cost: expense ? String(expense.cost) : '',
+    expenseType: expense ? String(expense.expenseType) : String(ExpenseType.Service),
+    description: expense?.description ?? '',
+    paidByExternalName: expense?.paidByExternalName ?? '',
   });
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -247,15 +282,21 @@ function ExpenseModal({
     setError(null);
     setSubmitting(true);
     try {
-      await watchesApi.addExpense(watchId, {
+      const body = {
         title: form.title.trim(),
         cost: Number(form.cost),
         expenseType: Number(form.expenseType),
         description: form.description,
         paidByExternalName: form.paidByExternalName.trim() || null,
-      });
+      };
+      if (expense) {
+        await watchesApi.updateExpense(watchId, expense.id, body);
+      } else {
+        await watchesApi.addExpense(watchId, body);
+      }
       await qc.invalidateQueries({ queryKey: ['watch', watchId] });
-      notify('Expense added.', 'success');
+      await qc.invalidateQueries({ queryKey: ['myWatches'] });
+      notify(expense ? 'Expense updated.' : 'Expense added.', 'success');
       onDone();
     } catch (err) {
       setError(err as ApiError);
@@ -265,11 +306,11 @@ function ExpenseModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="Add expense"
+    <Modal open onClose={onClose} title={expense ? 'Edit expense' : 'Add expense'}
       footer={
         <>
           <button className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
-          <button className="btn-primary" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Add expense'}</button>
+          <button className="btn-primary" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : expense ? 'Save changes' : 'Add expense'}</button>
         </>
       }
     >
@@ -283,6 +324,7 @@ function ExpenseModal({
               <option value={String(ExpenseType.Service)}>Service</option>
               <option value={String(ExpenseType.Accessory)}>Accessory</option>
               <option value={String(ExpenseType.MissingPart)}>Missing part</option>
+              <option value={String(ExpenseType.Shipping)}>Shipping</option>
             </Select>
           </Field>
         </div>
