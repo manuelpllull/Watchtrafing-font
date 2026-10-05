@@ -106,7 +106,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <SectionHeader title="Recent watches" to="/watches" linkLabel="View collection" />
           {watches.isLoading ? (
             <div className="card p-4 text-sm text-ink-soft"><Spinner /> Loading…</div>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <SectionHeader title="Recent activity" />
           {activity.isLoading ? (
             <div className="card p-4 text-sm text-ink-soft"><Spinner /> Loading…</div>
