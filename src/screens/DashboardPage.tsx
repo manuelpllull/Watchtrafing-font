@@ -198,9 +198,6 @@ function ShareInvitationsCard() {
 
   const pending = (invitations.data ?? []).filter((i) => i.status === 'Pending');
 
-  // Nothing to action: keep the dashboard clean.
-  if (!invitations.isLoading && pending.length === 0) return null;
-
   return (
     <section>
       <SectionHeader title="Share invitations" />
@@ -210,6 +207,11 @@ function ShareInvitationsCard() {
         </div>
       ) : invitations.error ? (
         <PageError message={getMessage(invitations.error)} />
+      ) : pending.length === 0 ? (
+        <EmptyState
+          title="No pending invitations"
+          hint="When someone invites you as a co-owner or consignee, it shows up here."
+        />
       ) : (
         <ul className="card divide-y divide-surface-line">
           {pending.map((inv) => (
