@@ -5,8 +5,10 @@ import { ApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { Field, Input } from '@/components/ui/Field';
 import { AuthShell } from './AuthShell';
+import { useTranslation } from '@/i18n';
 
 export default function VerifyEmailPage() {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const [params] = useSearchParams();
 
@@ -22,7 +24,7 @@ export default function VerifyEmailPage() {
     setSubmitting(true);
     try {
       await authApi.verifyEmail({ email: email.trim(), token: token.trim() });
-      notify('Email verified. You can sign in now.', 'success');
+      notify(t('auth.emailVerified'), 'success');
       setDone(true);
     } catch (err) {
       setError(err as ApiError);
@@ -33,22 +35,22 @@ export default function VerifyEmailPage() {
 
   if (done) {
     return (
-      <AuthShell title="Email verified">
-        <p className="text-sm text-ink-soft">Your email is now verified.</p>
+      <AuthShell title={t('auth.emailVerified')}>
+        <p className="text-sm text-ink-soft">{t('auth.emailVerifiedHint')}</p>
         <Link to="/login" className="btn-primary mt-4 w-full">
-          Continue to sign in
+          {t('auth.backToSignIn')}
         </Link>
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell title="Verify email" subtitle="Enter the token you received by email.">
+    <AuthShell title={t('auth.verifyEmail')} subtitle={t('auth.verificationTokenHint')}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Email" htmlFor="email" required>
+        <Field label={t('common.email')} htmlFor="email" required>
           <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={submitting} />
         </Field>
-        <Field label="Verification token" htmlFor="token" required>
+        <Field label={t('auth.verificationToken')} htmlFor="token" required>
           <Input id="token" required value={token} onChange={(e) => setToken(e.target.value)} disabled={submitting} />
         </Field>
         {error && (

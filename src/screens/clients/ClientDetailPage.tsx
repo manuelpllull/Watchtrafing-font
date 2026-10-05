@@ -8,8 +8,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { formatDate, formatMoney } from '@/lib/format';
+import { useTranslation } from '@/i18n';
 
 export default function ClientDetailPage() {
+  const { t } = useTranslation();
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -33,7 +35,7 @@ export default function ClientDetailPage() {
     try {
       await remove.mutateAsync();
       await qc.invalidateQueries({ queryKey: ['clients'] });
-      notify('Client deleted. Trade history was preserved.', 'success');
+      notify(t('clients.deleted'), 'success');
       navigate('/clients');
     } catch (err) {
       notify(getMessage(err), 'error');
@@ -55,7 +57,7 @@ export default function ClientDetailPage() {
   return (
     <div className="space-y-5">
       <nav className="text-sm text-ink-soft">
-        <Link to="/clients" className="hover:underline">Client CRM</Link> / <span className="text-ink">{c.name}</span>
+        <Link to="/clients" className="hover:underline">{t('clients.title')}</Link> / <span className="text-ink">{c.name}</span>
       </nav>
       <header className="card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -64,16 +66,16 @@ export default function ClientDetailPage() {
             <p className="mt-1 text-sm text-ink-soft">Added {formatDate(c.createdAt)}</p>
           </div>
           <div className="flex gap-2">
-            <Link to={`/clients/${c.id}/edit`} className="btn-secondary">Edit</Link>
+            <Link to={`/clients/${c.id}/edit`} className="btn-secondary">{t('common.edit')}</Link>
             <button type="button" className="btn-ghost text-red-600 dark:text-red-400" onClick={deleteClient} disabled={remove.isPending}>{remove.isPending ? 'Deleting…' : 'Delete'}</button>
           </div>
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Info label="Phone" value={c.phoneNumber} />
-          <Info label="Email" value={c.email} />
-          <Info label="Address" value={contact || null} />
-          <Info label="Linked platform user" value={c.linkedUserName ? `@${c.linkedUserName}` : 'Not linked'} />
+          <Info label={t('clients.phone')} value={c.phoneNumber} />
+          <Info label={t('common.email')} value={c.email} />
+          <Info label={t('clients.address')} value={contact || null} />
+          <Info label={t('clients.linkedUser')} value={c.linkedUserName ? `@${c.linkedUserName}` : t('clients.noLinkedUser')} />
         </div>
 
         {links.some(([, url]) => !!url) && (
@@ -87,11 +89,11 @@ export default function ClientDetailPage() {
 
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recorded trades</h2>
+          <h2 className="text-lg font-semibold">{t('clients.recordedTrades')}</h2>
           <span className="text-sm text-ink-soft">{c.trades.length} total</span>
         </div>
         {c.trades.length === 0 ? (
-          <EmptyState title="No trades recorded" hint="Choose this client when recording a sale from a watch." />
+          <EmptyState title={t('clients.noTrades')} hint={t('clients.recordedTradesHint')} />
         ) : (
           <ul className="card divide-y divide-surface-line">
             {c.trades.map((trade) => (

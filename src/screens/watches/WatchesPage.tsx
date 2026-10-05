@@ -9,6 +9,7 @@ import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { WatchStatusBadge } from '@/components/ui/Badge';
 import { formatMoney } from '@/lib/format';
 import { WatchStatus } from '@/api/types';
+import { useTranslation } from '@/i18n';
 
 const STATUS_FILTERS: { value: 'all' | WatchStatus; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -18,6 +19,7 @@ const STATUS_FILTERS: { value: 'all' | WatchStatus; label: string }[] = [
 ];
 
 export default function WatchesPage() {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const [filter, setFilter] = useState<'all' | WatchStatus>('all');
 
@@ -34,7 +36,7 @@ export default function WatchesPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold">Collection</h1>
+          <h1 className="text-2xl font-semibold">{t('watches.title')}</h1>
           <p className="text-sm text-ink-soft">{session?.email}</p>
         </div>
         <Link to="/watches/new" className="btn-primary">+ Add watch</Link>
@@ -58,14 +60,14 @@ export default function WatchesPage() {
       </div>
 
       {isLoading ? (
-        <div className="card flex items-center gap-2 p-6 text-ink-soft"><Spinner /> Loading…</div>
+        <div className="card flex items-center gap-2 p-6 text-ink-soft"><Spinner /> {t('common.loading')}</div>
       ) : error ? (
         <PageError message={getMessage(error)} />
       ) : watches.length === 0 ? (
         <EmptyState
-          title="No watches here"
-          hint="Add your first timepiece to start tracking it."
-          action={<Link to="/watches/new" className="btn-primary">+ Add watch</Link>}
+          title={t('watches.empty')}
+          hint={t('watches.emptyHint')}
+          action={<Link to="/watches/new" className="btn-primary">{t('nav.addWatch')}</Link>}
         />
       ) : (
         <ul className="stagger grid gap-3 sm:grid-cols-2">
@@ -84,15 +86,15 @@ export default function WatchesPage() {
                 </div>
                 <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
                   <div>
-                    <dt className="text-xs text-ink-faint">Purchased</dt>
+                    <dt className="text-xs text-ink-faint">{t('watches.purchased')}</dt>
                     <dd className="font-medium">{formatMoney(w.purchasePrice)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-ink-faint">Sold</dt>
+                    <dt className="text-xs text-ink-faint">{t('watches.sold')}</dt>
                     <dd className="font-medium">{formatMoney(w.salePrice)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-ink-faint">Profit</dt>
+                    <dt className="text-xs text-ink-faint">{t('watches.profit')}</dt>
                     <dd className="font-medium">{formatMoney(w.profit)}</dd>
                   </div>
                 </dl>

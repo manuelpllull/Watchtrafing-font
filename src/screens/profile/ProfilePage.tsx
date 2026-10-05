@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast';
 import { Field, Input, Textarea } from '@/components/ui/Field';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, ErrorBanner, getMessage } from '@/components/ui/ErrorBanner';
+import { useTranslation } from '@/i18n';
 
 interface ProfileForm {
   displayName: string;
@@ -23,6 +24,7 @@ const emptyForm: ProfileForm = {
 };
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const { notify } = useToast();
   const qc = useQueryClient();
@@ -54,7 +56,7 @@ export default function ProfilePage() {
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['profile', session?.userId] });
-      notify('Profile updated.', 'success');
+      notify(t('profile.updated'), 'success');
     },
   });
 
@@ -81,8 +83,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Profile</h1>
-        <p className="text-sm text-ink-soft">Manage your identity and due-diligence settings.</p>
+        <h1 className="text-2xl font-semibold">{t('profile.title')}</h1>
+        <p className="text-sm text-ink-soft">{t('profile.subtitle')}</p>
       </header>
 
       <section className="card p-5">
@@ -97,28 +99,28 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-4">
-          <Stat label="Completed as seller" value={profile.data.completedTradesAsSeller} />
-          <Stat label="Completed as buyer" value={profile.data.completedTradesAsBuyer} />
-          <Stat label="Cancelled as seller" value={profile.data.cancelledTradesAsSeller} />
-          <Stat label="Cancelled as buyer" value={profile.data.cancelledTradesAsBuyer} />
+          <Stat label={t('counterparty.completedAsSeller')} value={profile.data.completedTradesAsSeller} />
+          <Stat label={t('counterparty.completedAsBuyer')} value={profile.data.completedTradesAsBuyer} />
+          <Stat label={t('counterparty.cancelledAsSeller')} value={profile.data.cancelledTradesAsSeller} />
+          <Stat label={t('counterparty.cancelledAsBuyer')} value={profile.data.cancelledTradesAsBuyer} />
         </div>
       </section>
 
       <section className="card p-5">
-        <h2 className="text-lg font-semibold">Personal details</h2>
+        <h2 className="text-lg font-semibold">{t('profile.personalDetails')}</h2>
         <form onSubmit={submit} className="mt-4 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Display name" htmlFor="displayName" required>
+            <Field label={t('profile.displayName')} htmlFor="displayName" required>
               <Input id="displayName" value={form.displayName} onChange={set('displayName')} required disabled={update.isPending} />
             </Field>
-            <Field label="Country" htmlFor="country" hint="ISO code, e.g. CH">
+            <Field label={t('profile.country')} htmlFor="country" hint={t('profile.countryHint')}>
               <Input id="country" value={form.country} onChange={set('country')} disabled={update.isPending} />
             </Field>
           </div>
-          <Field label="Time zone" htmlFor="timeZone" hint="IANA identifier, e.g. Europe/Zurich">
+          <Field label={t('profile.timeZone')} htmlFor="timeZone" hint={t('profile.timeZoneHint')}>
             <Input id="timeZone" value={form.timeZone} onChange={set('timeZone')} disabled={update.isPending} />
           </Field>
-          <Field label="Description" htmlFor="description">
+          <Field label={t('profile.description')} htmlFor="description">
             <Textarea id="description" value={form.description} onChange={set('description')} disabled={update.isPending} />
           </Field>
           {error && <ErrorBanner error={error} />}
@@ -136,6 +138,7 @@ export default function ProfilePage() {
 }
 
 function BlockedUsersSection() {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const [username, setUsername] = useState('');
@@ -185,26 +188,26 @@ function BlockedUsersSection() {
 
   return (
     <section className="card p-5">
-      <h2 className="text-lg font-semibold">Blocked users</h2>
-      <p className="mt-1 text-sm text-ink-soft">Blocked users cannot be targeted by your manual trade proposals.</p>
+      <h2 className="text-lg font-semibold">{t('profile.blockedUsers')}</h2>
+      <p className="mt-1 text-sm text-ink-soft">{t('profile.blockedUsersHint')}</p>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username to block" />
-        <button type="button" className="btn-secondary shrink-0" onClick={lookup} disabled={!username.trim()}>Look up</button>
+        <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t('profile.blockPlaceholder')} />
+        <button type="button" className="btn-secondary shrink-0" onClick={lookup} disabled={!username.trim()}>{t('profile.lookUp')}</button>
       </div>
       {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
       {target && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-2 text-sm text-red-800 dark:text-red-300">
           <span><strong>{target.displayName}</strong> (@{target.userName})</span>
           <button type="button" className="btn-danger" onClick={doBlock} disabled={block.isPending}>
-            {block.isPending ? 'Blocking…' : 'Block user'}
+            {block.isPending ? t('profile.blocking') : t('profile.block')}
           </button>
         </div>
       )}
       <div className="mt-4">
         {blocked.isLoading ? (
-          <p className="text-sm text-ink-soft">Loading blocked users…</p>
+          <p className="text-sm text-ink-soft">{t('profile.loadingBlocked')}</p>
         ) : (blocked.data?.length ?? 0) === 0 ? (
-          <p className="text-sm text-ink-faint">No blocked users.</p>
+          <p className="text-sm text-ink-faint">{t('profile.noBlocked')}</p>
         ) : (
           <ul className="divide-y divide-surface-line rounded-lg border border-surface-line">
             {blocked.data!.map((user) => (

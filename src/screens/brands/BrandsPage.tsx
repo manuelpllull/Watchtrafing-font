@@ -8,8 +8,10 @@ import { Field, Input } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, ErrorBanner, getMessage } from '@/components/ui/ErrorBanner';
+import { useTranslation } from '@/i18n';
 
 export default function BrandsPage() {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const { confirm, dialog } = useConfirm();
@@ -31,7 +33,7 @@ export default function BrandsPage() {
       await create.mutateAsync();
       await qc.invalidateQueries({ queryKey: ['brands'] });
       setName('');
-      notify('Brand created.', 'success');
+      notify(t('brands.created'), 'success');
     } catch (err) {
       setError(err as ApiError);
     }
@@ -48,7 +50,7 @@ export default function BrandsPage() {
     try {
       await remove.mutateAsync(id);
       await qc.invalidateQueries({ queryKey: ['brands'] });
-      notify('Brand deleted.', 'success');
+      notify(t('brands.deleted'), 'success');
     } catch (err) {
       notify(getMessage(err), 'error');
     }
@@ -57,18 +59,18 @@ export default function BrandsPage() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold">Brand catalog</h1>
-        <p className="text-sm text-ink-soft">Admin-only system configuration used by watch forms.</p>
+        <h1 className="text-2xl font-semibold">{t('brands.title')}</h1>
+        <p className="text-sm text-ink-soft">{t('brands.subtitle')}</p>
       </header>
 
       <form onSubmit={submit} className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <Field label="New brand" htmlFor="brand-name" required>
-            <Input id="brand-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Rolex" required />
+          <Field label={t('brands.new')} htmlFor="brand-name" required>
+            <Input id="brand-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('brands.namePlaceholder')} required />
           </Field>
         </div>
         <button type="submit" className="btn-primary" disabled={create.isPending}>
-          {create.isPending ? <><Spinner /> Adding…</> : 'Add brand'}
+          {create.isPending ? <><Spinner /> {t('common.loading')}</> : t('brands.add')}
         </button>
       </form>
       {error && <ErrorBanner error={error} />}
@@ -78,7 +80,7 @@ export default function BrandsPage() {
       ) : brands.error ? (
         <PageError message={getMessage(brands.error)} />
       ) : (brands.data?.length ?? 0) === 0 ? (
-        <EmptyState title="No brands configured" hint="Add a brand before creating watches." />
+        <EmptyState title={t('brands.empty')} hint={t('brands.emptyHint')} />
       ) : (
         <ul className="card divide-y divide-surface-line">
           {brands.data!.map((brand) => (

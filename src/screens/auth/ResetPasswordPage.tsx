@@ -5,8 +5,10 @@ import { ApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { Field, Input } from '@/components/ui/Field';
 import { AuthShell } from './AuthShell';
+import { useTranslation } from '@/i18n';
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const [params] = useSearchParams();
 
@@ -27,7 +29,7 @@ export default function ResetPasswordPage() {
         token: token.trim(),
         newPassword,
       });
-      notify('Password updated. Please sign in.', 'success');
+      notify(t('auth.passwordUpdated'), 'success');
       setDone(true);
     } catch (err) {
       setError(err as ApiError);
@@ -38,24 +40,24 @@ export default function ResetPasswordPage() {
 
   if (done) {
     return (
-      <AuthShell title="Password updated">
+      <AuthShell title={t('auth.passwordUpdated')}>
         <Link to="/login" className="btn-primary w-full">
-          Continue to sign in
+          {t('auth.backToSignIn')}
         </Link>
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell title="Set a new password">
+    <AuthShell title={t('auth.setNewPassword')}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Email" htmlFor="email" required>
+        <Field label={t('common.email')} htmlFor="email" required>
           <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={submitting} />
         </Field>
-        <Field label="Reset token" htmlFor="token" required>
+        <Field label={t('auth.resetToken')} htmlFor="token" required>
           <Input id="token" required value={token} onChange={(e) => setToken(e.target.value)} disabled={submitting} />
         </Field>
-        <Field label="New password" htmlFor="newPassword" required>
+        <Field label={t('auth.newPassword')} htmlFor="newPassword" required>
           <Input
             id="newPassword"
             type="password"

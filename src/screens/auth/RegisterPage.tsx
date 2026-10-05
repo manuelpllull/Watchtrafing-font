@@ -5,8 +5,10 @@ import { ApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { Field, Input } from '@/components/ui/Field';
 import { AuthShell, ErrorMessages } from './AuthShell';
+import { useTranslation } from '@/i18n';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const navigate = useNavigate();
 
@@ -37,7 +39,7 @@ export default function RegisterPage() {
         timeZone: form.timeZone || null,
         password: form.password,
       });
-      notify('Account created. You can sign in now.', 'success');
+      notify(t('auth.registerSubtitle'), 'success');
       navigate('/login');
     } catch (err) {
       setError(err as ApiError);
@@ -47,29 +49,26 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthShell
-      title="Create account"
-      subtitle="Start managing your watch collection and trades."
-    >
+    <AuthShell title={t('auth.register')} subtitle={t('auth.registerSubtitle')}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Email" htmlFor="email" required>
+        <Field label={t('common.email')} htmlFor="email" required>
           <Input id="email" type="email" autoComplete="email" required value={form.email} onChange={set('email')} disabled={submitting} />
         </Field>
-        <Field label="Username" htmlFor="userName" required hint="Used for counterparty lookup.">
+        <Field label={t('auth.username')} htmlFor="userName" required hint={t('auth.timeZoneUsedFor')}>
           <Input id="userName" autoComplete="username" required value={form.userName} onChange={set('userName')} disabled={submitting} />
         </Field>
-        <Field label="Display name" htmlFor="displayName" required>
+        <Field label={t('auth.displayName')} htmlFor="displayName" required>
           <Input id="displayName" required value={form.displayName} onChange={set('displayName')} disabled={submitting} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Country" htmlFor="country" hint="ISO code, e.g. CH">
+          <Field label={t('auth.country')} htmlFor="country" hint={t('auth.countryHint')}>
             <Input id="country" value={form.country} onChange={set('country')} disabled={submitting} />
           </Field>
-          <Field label="Time zone" htmlFor="timeZone" hint="IANA, e.g. Europe/Zurich">
+          <Field label={t('auth.timeZone')} htmlFor="timeZone" hint={t('auth.timeZoneHint')}>
             <Input id="timeZone" value={form.timeZone} onChange={set('timeZone')} disabled={submitting} />
           </Field>
         </div>
-        <Field label="Password" htmlFor="password" required>
+        <Field label={t('common.password')} htmlFor="password" required>
           <Input id="password" type="password" autoComplete="new-password" required minLength={8} value={form.password} onChange={set('password')} disabled={submitting} />
         </Field>
         {error && <ErrorMessages error={error} />}

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useTranslation } from '@/i18n';
 
 export function Modal({
   open,
@@ -13,6 +14,8 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -42,7 +45,7 @@ export function Modal({
             type="button"
             className="btn-ghost -mr-2 h-8 w-8 rounded-full p-0 text-xl leading-none"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             ×
           </button>

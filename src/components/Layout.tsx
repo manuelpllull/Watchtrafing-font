@@ -4,6 +4,9 @@ import { Cog, Moon, Plus, Sun } from 'lucide-react';
 import { usersApi } from '@/api/users';
 import { useAuth } from '@/auth/AuthContext';
 import { useShareInvitations } from '@/components/useShareInvitations';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/i18n';
+import type { TranslationKey } from '@/i18n/en';
 import { AccountMenu } from '@/components/AccountMenu';
 import { useToast } from '@/components/Toast';
 import { classNames } from '@/lib/format';
@@ -11,23 +14,25 @@ import { getStoredTheme, toggleTheme, type Theme } from '@/lib/theme';
 
 interface NavItem {
   to: string;
-  label: string;
+  /** Translation key for the label. */
+  labelKey: TranslationKey;
   adminOnly?: boolean;
   /** Shows a count of pending share invitations next to the label. */
   badge?: number;
 }
 
 const NAV: NavItem[] = [
-  { to: '/watches', label: 'Collection' },
-  { to: '/invitations', label: 'Invitations' },
-  { to: '/trades', label: 'Trades' },
-  { to: '/lookup', label: 'Counterparties' },
-  { to: '/clients', label: 'Clients' },
-  { to: '/activity', label: 'Activity' },
-  { to: '/brands', label: 'Brands', adminOnly: true },
+  { to: '/watches', labelKey: 'nav.collection' },
+  { to: '/invitations', labelKey: 'nav.invitations' },
+  { to: '/trades', labelKey: 'nav.trades' },
+  { to: '/lookup', labelKey: 'nav.counterparties' },
+  { to: '/clients', labelKey: 'nav.clients' },
+  { to: '/activity', labelKey: 'nav.activity' },
+  { to: '/brands', labelKey: 'nav.brands', adminOnly: true },
 ];
 
 export function Layout() {
+  const { t } = useTranslation();
   const { session, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,7 +79,7 @@ export function Layout() {
                   )
                 }
               >
-                {i.label}
+                {t(i.labelKey)}
                 {i.badge ? (
                   <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">
                     {i.badge}
@@ -90,16 +95,19 @@ export function Layout() {
               className="btn-primary hidden px-3 py-1.5 text-[13px] sm:inline-flex"
             >
               <Plus size={15} strokeWidth={2.5} />
-              Add watch
+              {t('nav.addWatch')}
             </Link>
             <button
               type="button"
               className="btn-ghost px-2 lg:hidden"
               onClick={() => setOpen((o) => !o)}
-              aria-label="Menu"
+              aria-label={t('common.menu')}
             >
               ☰
             </button>
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -140,7 +148,7 @@ export function Layout() {
                   }
                 >
                   <span className="flex items-center justify-between gap-2">
-                    {i.label}
+                    {t(i.labelKey)}
                     {i.badge ? (
                       <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 py-0.5 text-xs font-semibold text-white">
                         {i.badge}
@@ -157,7 +165,7 @@ export function Layout() {
                   onLogout();
                 }}
               >
-                Sign out
+                {t('nav.signOut')}
               </button>
             </div>
           </nav>
@@ -171,7 +179,7 @@ export function Layout() {
       </main>
 
       <p className="pb-10 text-center text-xs text-ink-faint">
-        WatchTrading PWA · {session?.role}
+        {t('app.tagline')} · {session?.role}
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/Field';
+import { useTranslation } from '@/i18n';
 
 export interface ComboboxOption {
   id: string;
@@ -26,6 +27,8 @@ export function SearchCombobox({
   placeholder?: string;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
+
   const [text, setText] = useState(selectedLabel);
   const [options, setOptions] = useState<ComboboxOption[]>(idleOptions ?? []);
   const [open, setOpen] = useState(false);
@@ -139,9 +142,9 @@ export function SearchCombobox({
           role="listbox"
           className="animate-pop-in origin-top absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-surface-line bg-surface-field py-1 shadow-lg"
         >
-          {loading && <li className="px-3 py-2 text-sm text-ink-faint">Searching…</li>}
+          {loading && <li className="px-3 py-2 text-sm text-ink-faint">{t('common.searching')}</li>}
           {failed && !loading && (
-            <li className="px-3 py-2 text-sm text-red-600 dark:text-red-400">Search failed — is the API running?</li>
+            <li className="px-3 py-2 text-sm text-red-600 dark:text-red-400">{t('common.searchFailed')}</li>
           )}
           {!loading && !failed && options.length === 0 && (
             <li className="px-3 py-2 text-sm text-ink-faint">

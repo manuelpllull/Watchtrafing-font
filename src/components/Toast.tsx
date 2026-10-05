@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 type Tone = 'success' | 'error' | 'info' | 'warning';
 
@@ -38,6 +39,8 @@ const toneIcons: Record<Tone, typeof Info> = {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  const { t } = useTranslation();
+
   const dismiss = useCallback((id: number) => {
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
@@ -57,20 +60,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         aria-live="polite"
         className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col items-end gap-2"
       >
-        {toasts.map((t) => {
-          const Icon = toneIcons[t.tone];
+        {toasts.map((toast) => {
+          const Icon = toneIcons[toast.tone];
           return (
             <div
-              key={t.id}
+              key={toast.id}
               role="status"
-              className={`toast pointer-events-auto flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ring-1 ring-white/20 backdrop-blur ${toneStyles[t.tone]}`}
+              className={`toast pointer-events-auto flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ring-1 ring-white/20 backdrop-blur ${toneStyles[toast.tone]}`}
             >
               <Icon size={16} className="shrink-0" />
-              <span className="flex-1">{t.message}</span>
+              <span className="flex-1">{toast.message}</span>
               <button
                 type="button"
-                aria-label="Dismiss"
-                onClick={() => dismiss(t.id)}
+                aria-label={t('common.dismiss')}
+                onClick={() => dismiss(toast.id)}
                 className="shrink-0 rounded p-0.5 text-white/70 transition hover:bg-white/15 hover:text-white"
               >
                 <X size={14} />

@@ -5,8 +5,10 @@ import { ApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { Field, Input } from '@/components/ui/Field';
 import { AuthShell } from './AuthShell';
+import { useTranslation } from '@/i18n';
 
 export default function RequestPasswordResetPage() {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const navigate = useNavigate();
 
@@ -20,7 +22,7 @@ export default function RequestPasswordResetPage() {
     setSubmitting(true);
     try {
       const token = await authApi.requestPasswordReset({ email: email.trim() });
-      notify('Reset token generated.', 'success');
+      notify(t('auth.resetToken'), 'success');
       navigate(`/reset-password?email=${encodeURIComponent(email)}`);
       // Show the returned token in dev (backend stubs email sending).
       notify(`Reset token (stub): ${token}`, 'info');
@@ -32,9 +34,9 @@ export default function RequestPasswordResetPage() {
   };
 
   return (
-    <AuthShell title="Reset password" subtitle="We'll generate a reset token (email sending is stubbed).">
+    <AuthShell title={t('auth.requestReset')} subtitle={t('auth.requestResetSubtitle')}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Email" htmlFor="email" required>
+        <Field label={t('common.email')} htmlFor="email" required>
           <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={submitting} />
         </Field>
         {error && (

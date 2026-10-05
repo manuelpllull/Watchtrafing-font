@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { Field, Input, Textarea } from '@/components/ui/Field';
 import { SearchCombobox, type ComboboxOption } from '@/components/SearchCombobox';
 import { Spinner } from '@/components/ui/Spinner';
+import { useTranslation } from '@/i18n';
 
 interface ClientFormState {
   name: string;
@@ -39,6 +40,7 @@ const emptyForm: ClientFormState = {
 };
 
 export default function ClientFormPage() {
+  const { t } = useTranslation();
   const { clientId } = useParams<{ clientId?: string }>();
   const isEdit = !!clientId;
   const navigate = useNavigate();
@@ -121,7 +123,7 @@ export default function ClientFormPage() {
       const id = await save.mutateAsync(body);
       await qc.invalidateQueries({ queryKey: ['clients'] });
       if (isEdit) await qc.invalidateQueries({ queryKey: ['client', clientId] });
-      notify(isEdit ? 'Client updated.' : 'Client created.', 'success');
+      notify(t('clients.saved'), 'success');
       navigate(`/clients/${id}`);
     } catch (err) {
       setError(err as ApiError);
@@ -133,17 +135,17 @@ export default function ClientFormPage() {
     return <div className="flex justify-center py-16"><Spinner className="h-8 w-8 text-brand-600" /></div>;
   }
   if (existing.error) {
-    return <p className="card p-5 text-sm text-red-700 dark:text-red-300">Unable to load this client.</p>;
+    return <p className="card p-5 text-sm text-red-700 dark:text-red-300">{t('clients.loadFailed')}</p>;
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <nav className="text-sm text-ink-soft">
-        <Link to="/clients" className="hover:underline">Client CRM</Link> /{' '}
-        <span className="text-ink">{isEdit ? 'Edit client' : 'New client'}</span>
+        <Link to="/clients" className="hover:underline">{t('clients.title')}</Link> /{' '}
+        <span className="text-ink">{isEdit ? t('clients.update') : t('clients.create')}</span>
       </nav>
       <header>
-        <h1 className="text-2xl font-semibold">{isEdit ? 'Edit client' : 'Add client'}</h1>
+        <h1 className="text-2xl font-semibold">{isEdit ? t('clients.update') : t('clients.add')}</h1>
         <p className="text-sm text-ink-soft">
           Client records are private to your account. A linked username turns their sales into platform-confirmed trades.
         </p>
@@ -151,24 +153,24 @@ export default function ClientFormPage() {
 
       <form onSubmit={submit} className="card space-y-5 p-5">
         <section className="space-y-4">
-          <h2 className="text-base font-semibold">Identity and contact</h2>
-          <Field label="Name" htmlFor="client-name" required>
+          <h2 className="text-base font-semibold">{t('clients.identity')}</h2>
+          <Field label={t('clients.name')} htmlFor="client-name" required>
             <Input id="client-name" value={form.name} onChange={set('name')} required disabled={submitting} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Phone" htmlFor="client-phone"><Input id="client-phone" value={form.phoneNumber} onChange={set('phoneNumber')} disabled={submitting} /></Field>
-            <Field label="Email" htmlFor="client-email"><Input id="client-email" type="email" value={form.email} onChange={set('email')} disabled={submitting} /></Field>
+            <Field label={t('clients.phone')} htmlFor="client-phone"><Input id="client-phone" value={form.phoneNumber} onChange={set('phoneNumber')} disabled={submitting} /></Field>
+            <Field label={t('common.email')} htmlFor="client-email"><Input id="client-email" type="email" value={form.email} onChange={set('email')} disabled={submitting} /></Field>
           </div>
-          <Field label="Address" htmlFor="client-address"><Textarea id="client-address" value={form.address} onChange={set('address')} disabled={submitting} /></Field>
+          <Field label={t('clients.address')} htmlFor="client-address"><Textarea id="client-address" value={form.address} onChange={set('address')} disabled={submitting} /></Field>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="City" htmlFor="client-city"><Input id="client-city" value={form.city} onChange={set('city')} disabled={submitting} /></Field>
-            <Field label="Postal code" htmlFor="client-postal"><Input id="client-postal" value={form.postalCode} onChange={set('postalCode')} disabled={submitting} /></Field>
-            <Field label="Country" htmlFor="client-country" hint="ISO code, e.g. ES"><Input id="client-country" value={form.country} onChange={set('country')} disabled={submitting} /></Field>
+            <Field label={t('clients.city')} htmlFor="client-city"><Input id="client-city" value={form.city} onChange={set('city')} disabled={submitting} /></Field>
+            <Field label={t('clients.postalCode')} htmlFor="client-postal"><Input id="client-postal" value={form.postalCode} onChange={set('postalCode')} disabled={submitting} /></Field>
+            <Field label={t('clients.country')} htmlFor="client-country" hint={t('clients.countryHint')}><Input id="client-country" value={form.country} onChange={set('country')} disabled={submitting} /></Field>
           </div>
         </section>
 
         <section className="space-y-4 border-t border-surface-line pt-5">
-          <h2 className="text-base font-semibold">Marketplace profiles</h2>
+          <h2 className="text-base font-semibold">{t('clients.marketplaceProfiles')}</h2>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Wallapop" htmlFor="client-wallapop"><Input id="client-wallapop" type="url" value={form.wallapopProfileLink} onChange={set('wallapopProfileLink')} disabled={submitting} placeholder="https://…" /></Field>
             <Field label="Vinted" htmlFor="client-vinted"><Input id="client-vinted" type="url" value={form.vintedProfileLink} onChange={set('vintedProfileLink')} disabled={submitting} placeholder="https://…" /></Field>
@@ -177,15 +179,15 @@ export default function ClientFormPage() {
         </section>
 
         <section className="space-y-3 border-t border-surface-line pt-5">
-          <h2 className="text-base font-semibold">Platform link</h2>
-          <Field label="Linked username" htmlFor="client-linked" hint="Optional. Type to search platform users — users blocked by you (or who blocked you) won't show up. Clear this field to unlink.">
+          <h2 className="text-base font-semibold">{t('clients.linkedUser')}</h2>
+          <Field label={t('clients.linkedUsername')} htmlFor="client-linked" hint={t('clients.linkedHint')}>
             <SearchCombobox
               id="client-linked"
               value={linkedUserId}
               selectedLabel={form.linkedUserName}
               disabled={submitting}
               search={searchUsers}
-              placeholder="e.g. johndoe"
+              placeholder={t('counterparty.placeholder')}
               onSelect={(id, name) => {
                 setLinkedUserId(id);
                 setForm((current) => ({ ...current, linkedUserName: name }));
@@ -200,8 +202,8 @@ export default function ClientFormPage() {
           </div>
         )}
         <div className="flex justify-end gap-2">
-          <button type="button" className="btn-secondary" onClick={() => navigate(-1)} disabled={submitting}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={submitting}>{submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Create client'}</button>
+          <button type="button" className="btn-secondary" onClick={() => navigate(-1)} disabled={submitting}>{t('common.cancel')}</button>
+          <button type="submit" className="btn-primary" disabled={submitting}>{submitting ? t('common.saving') : isEdit ? t('clients.updateConfirm') : t('clients.createConfirm')}</button>
         </div>
       </form>
     </div>

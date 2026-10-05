@@ -7,8 +7,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { formatDateTime } from '@/lib/format';
+import { useTranslation } from '@/i18n';
 
 export default function ActivityPage() {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const isAdmin = session?.role === 'Admin';
   const [global, setGlobal] = useState(false);
@@ -36,32 +38,32 @@ export default function ActivityPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Activity</h1>
-          <p className="text-sm text-ink-soft">A timeline of domain events affecting your account.</p>
+          <h1 className="text-2xl font-semibold">{t('activity.title')}</h1>
+          <p className="text-sm text-ink-soft">{t('activity.subtitle')}</p>
         </div>
         {isAdmin && (
           <label className="flex items-center gap-2 text-sm font-medium text-ink">
             <input type="checkbox" checked={global} onChange={(e) => setGlobal(e.target.checked)} />
-            Admin global view
+            {t('activity.globalView')}
           </label>
         )}
       </header>
 
       {global && isAdmin && (
         <div className="card grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="User ID" htmlFor="activity-user"><Input id="activity-user" value={filters.userId} onChange={set('userId')} placeholder="UUID" /></Field>
-          <Field label="Entity ID" htmlFor="activity-entity"><Input id="activity-entity" value={filters.entityId} onChange={set('entityId')} placeholder="UUID" /></Field>
-          <Field label="From" htmlFor="activity-from"><Input id="activity-from" type="date" value={filters.from} onChange={set('from')} /></Field>
-          <Field label="To" htmlFor="activity-to"><Input id="activity-to" type="date" value={filters.to} onChange={set('to')} /></Field>
+          <Field label={t('activity.userId')} htmlFor="activity-user"><Input id="activity-user" value={filters.userId} onChange={set('userId')} placeholder={t('activity.uuidPlaceholder')} /></Field>
+          <Field label={t('activity.entityId')} htmlFor="activity-entity"><Input id="activity-entity" value={filters.entityId} onChange={set('entityId')} placeholder={t('activity.uuidPlaceholder')} /></Field>
+          <Field label={t('activity.from')} htmlFor="activity-from"><Input id="activity-from" type="date" value={filters.from} onChange={set('from')} /></Field>
+          <Field label={t('activity.to')} htmlFor="activity-to"><Input id="activity-to" type="date" value={filters.to} onChange={set('to')} /></Field>
         </div>
       )}
 
       {query.isLoading ? (
-        <div className="card flex items-center gap-2 p-6 text-sm text-ink-soft"><Spinner /> Loading activity…</div>
+        <div className="card flex items-center gap-2 p-6 text-sm text-ink-soft"><Spinner /> {t('common.loading')}</div>
       ) : query.error ? (
         <PageError message={getMessage(query.error)} />
       ) : (query.data?.length ?? 0) === 0 ? (
-        <EmptyState title="No activity" hint="Domain events will appear here as you use the app." />
+        <EmptyState title={t('activity.empty')} hint={t('activity.emptyHint')} />
       ) : (
         <ol className="card divide-y divide-surface-line">
           {query.data!.map((item) => (

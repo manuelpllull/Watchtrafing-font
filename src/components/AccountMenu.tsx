@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LogOut, UserRound } from 'lucide-react';
 import { NotificationToggle } from '@/components/NotificationToggle';
+import { useTranslation } from '@/i18n';
 
 export function AccountMenu({
   email,
@@ -10,6 +11,7 @@ export function AccountMenu({
   email?: string | null;
   onLogout: () => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -61,7 +63,7 @@ export function AccountMenu({
             className="flex items-center gap-2 px-4 py-2.5 font-display text-[15px] text-ink hover:bg-ink/10"
           >
             <UserRound size={15} className="text-ink-faint" />
-            Profile
+            {t('nav.profile')}
           </Link>
           <NotificationToggle onDone={() => setOpen(false)} />
           <button
@@ -74,7 +76,7 @@ export function AccountMenu({
             className="flex w-full items-center gap-2 px-4 py-2.5 text-left font-display text-[15px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:bg-red-500/100/10"
           >
             <LogOut size={15} />
-            Sign out
+            {t('nav.signOut')}
           </button>
         </div>
       )}

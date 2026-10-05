@@ -7,6 +7,7 @@ import { ApiError, makeApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useAuth } from '@/auth/AuthContext';
+import { useTranslation } from '@/i18n';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { Modal } from '@/components/ui/Modal';
@@ -26,6 +27,7 @@ import { ExpenseType, type AdditionalExpense } from '@/api/types';
 
 export default function WatchDetailPage() {
   const { watchId } = useParams<{ watchId: string }>();
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -51,7 +53,7 @@ export default function WatchDetailPage() {
   const remove = useMutation({
     mutationFn: () => watchesApi.remove(watchId!),
     onSuccess: async () => {
-      notify('Watch deleted.', 'success');
+      notify(t('watchDetail.deleted'), 'success');
       await qc.invalidateQueries({ queryKey: ['myWatches'] });
       navigate('/watches');
     },
@@ -60,7 +62,7 @@ export default function WatchDetailPage() {
   const removeExpense = useMutation({
     mutationFn: (expenseId: string) => watchesApi.removeExpense(watchId!, expenseId),
     onSuccess: async () => {
-      notify('Expense removed.', 'success');
+      notify(t('watchDetail.expenseRemoved'), 'success');
       await qc.invalidateQueries({ queryKey: ['watch', watchId] });
       await qc.invalidateQueries({ queryKey: ['myWatches'] });
     },
@@ -70,7 +72,7 @@ export default function WatchDetailPage() {
     mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
       accept ? watchesApi.acceptShare(id) : watchesApi.rejectShare(id),
     onSuccess: async (_data, { accept }) => {
-      notify(accept ? 'Share accepted.' : 'Invitation declined.', 'success');
+      notify(accept ? t('invitations.accepted') : t('invitations.declined'), 'success');
       await qc.invalidateQueries({ queryKey: ['watch', watchId] });
       await qc.invalidateQueries({ queryKey: ['myWatches'] });
       await qc.invalidateQueries({ queryKey: ['shareInvites'] });
@@ -80,9 +82,9 @@ export default function WatchDetailPage() {
 
   const onDeleteExpense = async (expenseId: string, title: string) => {
     const ok = await confirm({
-      title: 'Delete expense?',
-      message: `Remove "${title}" from this watch? Profit will be recalculated.`,
-      confirmLabel: 'Delete',
+      title: t('watchDetail.deleteExpenseTitle'),
+      message: t('watchDetail.deleteExpenseMessage', { title }),
+      confirmLabel: t('watchDetail.deleteExpenseConfirm'),
       tone: 'danger',
     });
     if (!ok) return;
@@ -91,9 +93,9 @@ export default function WatchDetailPage() {
 
   const onDelete = async () => {
     const ok = await confirm({
-      title: 'Delete watch?',
-      message: 'The watch will be permanently deleted, along with any trades on it — including completed sales. This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: t('watchDetail.deleteTitle'),
+      message: t('watchDetail.deleteMessage'),
+      confirmLabel: t('watchDetail.deleteConfirm'),
       tone: 'danger',
     });
     if (!ok) return;
@@ -117,21 +119,21 @@ export default function WatchDetailPage() {
   return (
     <div className="space-y-5">
       <nav className="text-sm text-ink-soft">
-        <Link to="/watches" className="hover:underline">Collection</Link> /{' '}
+        <Link to="/watches" className="hover:underline">{t('watches.title')}</Link> /{' '}
         <span className="text-ink">{w.brand.name} {w.model}</span>
       </nav>
 
       {!isOwner && (
         <div className="card p-4 text-sm text-ink-soft">
-          Owned by <span className="font-semibold text-ink">@{w.ownerUserName ?? 'unknown'}</span>
-          {myShare ? ` · you hold ${formatPercent(myShare.ownershipPercentage)}%` : ''}
+          {t('watchDetail.ownedBy', { owner: w.ownerUserName ?? t('common.unknown') })}
+          {myShare ? ` · ${t('watchDetail.youHold', { ownership: formatPercent(myShare.ownershipPercentage) })}` : ''}
         </div>
       )}
 
       {myPendingShare && (
         <div className="card border-amber-300 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
           <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-            You're invited to co-own this watch
+            {t('watchDetail.invitedTitle')}
           </p>
           <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
             {myPendingShare.isConsignment
@@ -164,16 +166,16 @@ export default function WatchDetailPage() {
           <div>
             <h1 className="text-2xl font-semibold">{w.brand.name} {w.model}</h1>
             <p className="text-sm text-ink-soft">
-              {w.referenceNumber || 'No reference'} {w.year ? `· ${w.year}` : ''}
+              {w.referenceNumber || t('watchDetail.noReference')} {w.year ? `· ${w.year}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <WatchStatusBadge status={w.status} />
             {isOwner && (
               <>
-                <Link to={`/watches/${w.id}/edit`} className="btn-secondary">Edit</Link>
+                <Link to={`/watches/${w.id}/edit`} className="btn-secondary">{t('common.edit')}</Link>
                 <button type="button" className="btn-ghost text-red-600 dark:text-red-400" onClick={onDelete} disabled={remove.isPending}>
-                  {remove.isPending ? 'Deleting…' : 'Delete'}
+                  {remove.isPending ? t('watchDetail.deleting') : t('common.delete')}
                 </button>
               </>
             )}
@@ -181,14 +183,14 @@ export default function WatchDetailPage() {
         </div>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Detail label="Condition" value={conditionLabel(w.condition)} />
-          <Detail label="Box / Papers" value={`${w.boxIncluded ? 'Box' : 'No box'} · ${w.papersIncluded ? 'Papers' : 'No papers'}`} />
-          <Detail label="Purchase" value={formatMoney(w.purchasePrice)} sub={formatDate(w.purchaseDate)} />
-          <Detail label="Sale" value={formatMoney(w.salePrice)} sub={formatDate(w.saleDate)} />
-          <Detail label="Profit" value={formatMoney(w.profit)} />
-          <Detail label="Margin" value={w.margin != null ? formatPercent(w.margin * 100) : '—'} />
-          <Detail label="Managed" value={w.isManaged ? 'Yes (shares)' : 'Sole owner'} />
-          <Detail label="Sold to" value={w.soldToUserId ? 'Platform user' : '—'} />
+          <Detail label={t('watch.condition')} value={conditionLabel(w.condition, t)} />
+          <Detail label={t('watchDetail.boxPapers')} value={`${w.boxIncluded ? t('watchDetail.box') : t('watchDetail.noBox')} · ${w.papersIncluded ? t('watchDetail.papers') : t('watchDetail.noPapers')}`} />
+          <Detail label={t('watchDetail.purchase')} value={formatMoney(w.purchasePrice)} sub={formatDate(w.purchaseDate)} />
+          <Detail label={t('watchDetail.sale')} value={formatMoney(w.salePrice)} sub={formatDate(w.saleDate)} />
+          <Detail label={t('watchDetail.profit')} value={formatMoney(w.profit)} />
+          <Detail label={t('watchDetail.margin')} value={w.margin != null ? formatPercent(w.margin * 100) : '—'} />
+          <Detail label={t('watchDetail.managed')} value={w.isManaged ? t('watchDetail.managedYes') : t('watchDetail.soleOwner')} />
+          <Detail label={t('watchDetail.soldTo')} value={w.soldToUserId ? t('watchDetail.platformUser') : '—'} />
         </dl>
 
         {w.description && (
@@ -201,25 +203,25 @@ export default function WatchDetailPage() {
 
       {/* Trade history for this watch */}
       <section>
-        <h2 className="mb-2 text-lg font-semibold">Trade history</h2>
+        <h2 className="mb-2 text-lg font-semibold">{t('watchDetail.tradeHistory')}</h2>
         {trades.isLoading ? (
           <div className="card p-4 text-sm text-ink-soft"><Spinner /> Loading…</div>
         ) : trades.error ? (
           <PageError message={getMessage(trades.error)} />
         ) : (trades.data?.length ?? 0) === 0 ? (
-          <EmptyState title="No trades recorded" hint="Record a sale to start a trade." />
+          <EmptyState title={t('watchDetail.noTrades')} hint={t('watchDetail.recordSale')} />
         ) : (
           <ul className="card divide-y divide-surface-line">
-            {trades.data!.map((t) => (
-              <li key={t.id}>
-                <Link to={`/trades/${t.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-ink/10">
+            {trades.data!.map((trade) => (
+              <li key={trade.id}>
+                <Link to={`/trades/${trade.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-ink/10">
                   <span className="text-sm font-medium">
-                    {t.buyerUserName || (t.buyerClientId ? `CRM client · ${t.buyerExternalName || 'client'}` : null) || t.buyerExternalName || 'External buyer'}
-                    <span className="text-ink-faint"> · {formatDate(t.saleDate)}</span>
+                    {trade.buyerUserName || (trade.buyerClientId ? `${t('dashboard.crmClient')} · ${trade.buyerExternalName || 'client'}` : null) || trade.buyerExternalName || t('dashboard.externalBuyer')}
+                    <span className="text-ink-faint"> · {formatDate(trade.saleDate)}</span>
                   </span>
                   <span className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{formatMoney(t.salePrice)}</span>
-                    <TradeStatusBadge status={t.status} />
+                    <span className="text-sm font-semibold">{formatMoney(trade.salePrice)}</span>
+                    <TradeStatusBadge status={trade.status} />
                   </span>
                 </Link>
               </li>
@@ -231,13 +233,18 @@ export default function WatchDetailPage() {
       {/* Shares */}
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Shares {w.isManaged && <span className="text-xs font-normal text-ink-faint">(managed)</span>}</h2>
+          <h2 className="text-lg font-semibold">
+            {t('watchDetail.shares')}{' '}
+            {w.isManaged && (
+              <span className="text-xs font-normal text-ink-faint">{t('watchDetail.managedSuffix')}</span>
+            )}
+          </h2>
           {isOwner && (
-            <button type="button" className="btn-secondary" onClick={() => setShareOpen(true)}>+ Add share</button>
+            <button type="button" className="btn-secondary" onClick={() => setShareOpen(true)}>{t('watchDetail.addShare')}</button>
           )}
         </div>
         {(w.shares?.length ?? 0) === 0 ? (
-          <EmptyState title="No shares" hint="Add co-owners or a consignee to split profits on sale." />
+          <EmptyState title={t('watchDetail.noShares')} hint={t('watchDetail.noSharesHint')} />
         ) : (
           <ul className="card divide-y divide-surface-line">
             {w.shares.map((s) => (
@@ -261,23 +268,23 @@ export default function WatchDetailPage() {
       {/* Additional expenses */}
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Additional expenses</h2>
-          <button type="button" className="btn-secondary" onClick={() => setExpenseOpen(true)}>+ Add expense</button>
+          <h2 className="text-lg font-semibold">{t('watchDetail.expenses')}</h2>
+          <button type="button" className="btn-secondary" onClick={() => setExpenseOpen(true)}>{t('watchDetail.addExpense')}</button>
         </div>
         {(w.additionalExpenses?.length ?? 0) === 0 ? (
-          <EmptyState title="No expenses" hint="Track repairs, services, accessories — used in profit calc." />
+          <EmptyState title={t('watchDetail.noExpenses')} hint={t('watchDetail.noExpensesHint')} />
         ) : (
           <ul className="card divide-y divide-surface-line">
             {w.additionalExpenses.map((ex) => (
               <li key={ex.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium">{ex.title} <span className="text-xs text-ink-faint">· {expenseLabel(ex.expenseType)}</span></p>
+                  <p className="text-sm font-medium">{ex.title} <span className="text-xs text-ink-faint">· {expenseLabel(ex.expenseType, t)}</span></p>
                   <p className="text-xs text-ink-soft">{ex.description}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="text-sm font-semibold text-red-600 dark:text-red-400">−{formatMoney(ex.cost)}</span>
-                  <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => setEditingExpense(ex)}>Edit</button>
-                  <button type="button" className="btn-ghost px-2 py-1 text-xs text-red-600 dark:text-red-400" onClick={() => onDeleteExpense(ex.id, ex.title)} disabled={removeExpense.isPending}>Delete</button>
+                  <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => setEditingExpense(ex)}>{t('watchDetail.editExpense')}</button>
+                  <button type="button" className="btn-ghost px-2 py-1 text-xs text-red-600 dark:text-red-400" onClick={() => onDeleteExpense(ex.id, ex.title)} disabled={removeExpense.isPending}>{t('common.delete')}</button>
                 </div>
               </li>
             ))}
@@ -326,6 +333,7 @@ function ExpenseModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -360,7 +368,7 @@ function ExpenseModal({
       }
       await qc.invalidateQueries({ queryKey: ['watch', watchId] });
       await qc.invalidateQueries({ queryKey: ['myWatches'] });
-      notify(expense ? 'Expense updated.' : 'Expense added.', 'success');
+      notify(expense ? t('watchDetail.expenseUpdated') : t('watchDetail.expenseAdded'), 'success');
       onDone();
     } catch (err) {
       setError(err as ApiError);
@@ -370,30 +378,32 @@ function ExpenseModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={expense ? 'Edit expense' : 'Add expense'}
+    <Modal open onClose={onClose} title={expense ? t('watchDetail.editExpense') : t('watchDetail.addExpense')}
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
-          <button className="btn-primary" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : expense ? 'Save changes' : 'Add expense'}</button>
+          <button className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
+          <button className="btn-primary" onClick={submit} disabled={submitting}>
+            {submitting ? t('common.saving') : expense ? t('common.save') : t('watchDetail.addExpense')}
+          </button>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Title" required><Input value={form.title} onChange={set('title')} required /></Field>
+        <Field label={t('watchDetail.expenseTitle')} required><Input value={form.title} onChange={set('title')} required /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Cost" required><Input type="number" step="0.01" min="0" value={form.cost} onChange={set('cost')} required /></Field>
-          <Field label="Type" required>
+          <Field label={t('watchDetail.expenseCost')} required><Input type="number" step="0.01" min="0" value={form.cost} onChange={set('cost')} required /></Field>
+          <Field label={t('watchDetail.expenseType')} required>
             <Select value={form.expenseType} onChange={set('expenseType')}>
-              <option value={String(ExpenseType.Repair)}>Repair</option>
-              <option value={String(ExpenseType.Service)}>Service</option>
-              <option value={String(ExpenseType.Accessory)}>Accessory</option>
-              <option value={String(ExpenseType.MissingPart)}>Missing part</option>
-              <option value={String(ExpenseType.Shipping)}>Shipping</option>
+              <option value={String(ExpenseType.Repair)}>{t('expenseType.Repair')}</option>
+              <option value={String(ExpenseType.Service)}>{t('expenseType.Service')}</option>
+              <option value={String(ExpenseType.Accessory)}>{t('expenseType.Accessory')}</option>
+              <option value={String(ExpenseType.MissingPart)}>{t('expenseType.MissingPart')}</option>
+              <option value={String(ExpenseType.Shipping)}>{t('expenseType.Shipping')}</option>
             </Select>
           </Field>
         </div>
-        <Field label="Description" required><Textarea value={form.description} onChange={set('description')} required /></Field>
-        <Field label="Paid by (external name)" hint="Leave blank if you paid."><Input value={form.paidByExternalName} onChange={set('paidByExternalName')} /></Field>
+        <Field label={t('watchDetail.expenseDescription')} required><Textarea value={form.description} onChange={set('description')} required /></Field>
+        <Field label={t('watchDetail.expensePaidBy')} hint={t('watchDetail.expenseDescriptionPlaceholder')}><Input value={form.paidByExternalName} onChange={set('paidByExternalName')} /></Field>
         {error && <ErrorList error={error} />}
       </form>
     </Modal>
@@ -410,6 +420,7 @@ function ShareModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -434,7 +445,7 @@ function ShareModal({
     e.preventDefault();
     setError(null);
     if (!form.isExternal && !form.userId) {
-      setError(makeApiError('Choose the co-owner from the search results.'));
+      setError(makeApiError(t('watch.coOwnerRequired')));
       return;
     }
     setSubmitting(true);
@@ -454,7 +465,7 @@ function ShareModal({
         isConsignment: form.isConsignment,
       });
       await qc.invalidateQueries({ queryKey: ['watch', watchId] });
-      notify('Share added.', 'success');
+      notify(t('watchDetail.shareAdded'), 'success');
       onDone();
     } catch (err) {
       setError(err as ApiError);
@@ -464,32 +475,34 @@ function ShareModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="Add share"
+    <Modal open onClose={onClose} title={t('watchDetail.addShare')}
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
-          <button className="btn-primary" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Add share'}</button>
+          <button className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
+          <button className="btn-primary" onClick={submit} disabled={submitting}>
+            {submitting ? t('common.saving') : t('watchDetail.addShareConfirm')}
+          </button>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Shareholder type">
+        <Field label={t('watchDetail.shareholderType')}>
           <Select value={form.isExternal ? 'external' : 'platform'} onChange={(e) => setForm((f) => ({ ...f, isExternal: e.target.value === 'external', userId: '', userName: '' }))}>
-            <option value="platform">Platform user</option>
-            <option value="external">External person</option>
+            <option value="platform">{t('watch.buyerKindPlatform')}</option>
+            <option value="external">{t('watchDetail.externalName')}</option>
           </Select>
         </Field>
 
         {form.isExternal ? (
-          <Field label="External name" required><Input value={form.externalName} onChange={set('externalName')} required /></Field>
+          <Field label={t('watchDetail.externalName')} required><Input value={form.externalName} onChange={set('externalName')} required /></Field>
         ) : (
-          <Field label="Co-owner" htmlFor="shareUserName" hint="Type to search. They'll be invited and must accept before a sale can be recorded.">
+          <Field label={t('watchDetail.coOwner')} htmlFor="shareUserName" hint={t('watch.coOwnerHint')}>
             <SearchCombobox
               id="shareUserName"
               value={form.userId}
               selectedLabel={form.userName}
               search={searchUserOptions}
-              placeholder="e.g. johndoe"
+              placeholder={t('counterparty.placeholder')}
               disabled={submitting}
               onSelect={(id, label) => setForm((f) => ({ ...f, userId: id, userName: label }))}
             />
@@ -498,17 +511,17 @@ function ShareModal({
 
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={form.isConsignment} onChange={set('isConsignment')} />
-          Consignment share (no capital stake, just a profit cut)
+          {t('watch.consignmentShare')}
         </label>
 
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Ownership %">
+          <Field label={t('watch.ownership')}>
             <Input type="number" step="0.01" min="0" max="100" value={form.isConsignment ? '0' : form.ownershipPercentage} onChange={set('ownershipPercentage')} disabled={form.isConsignment} />
           </Field>
-          <Field label="Profit %">
-            <Input type="number" step="0.01" min="0" max="100" value={form.profitPercentage} onChange={set('profitPercentage')} placeholder={form.isConsignment ? 'e.g. 15' : 'defaults to ownership'} />
+          <Field label={t('watch.profit')}>
+            <Input type="number" step="0.01" min="0" max="100" value={form.profitPercentage} onChange={set('profitPercentage')} placeholder={form.isConsignment ? t('watch.profitExample') : t('watch.profitDefaults')} />
           </Field>
-          <Field label="Money down">
+          <Field label={t('watch.moneyDown')}>
             <Input type="number" step="0.01" min="0" value={form.isConsignment ? '0' : form.moneyDown} onChange={set('moneyDown')} disabled={form.isConsignment} />
           </Field>
         </div>

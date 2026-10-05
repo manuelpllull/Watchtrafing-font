@@ -1,13 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { Modal } from './ui/Modal';
+import { useTranslation } from '@/i18n';
 import { Spinner } from './ui/Spinner';
 
 export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   tone = 'primary',
   loading = false,
   onConfirm,
@@ -23,6 +24,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <Modal
       open={open}
@@ -31,7 +34,7 @@ export function ConfirmDialog({
       footer={
         <>
           <button type="button" className="btn-secondary" onClick={onClose} disabled={loading}>
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </button>
           <button
             type="button"
@@ -40,7 +43,7 @@ export function ConfirmDialog({
             disabled={loading}
           >
             {loading && <Spinner className="h-4 w-4" />}
-            {confirmLabel}
+            {confirmLabel ?? t('common.confirm')}
           </button>
         </>
       }

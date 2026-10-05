@@ -7,8 +7,10 @@ import { Spinner } from '@/components/ui/Spinner';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { Badge } from '@/components/ui/Badge';
 import { formatDate } from '@/lib/format';
+import { useTranslation } from '@/i18n';
 
 export default function ClientsPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const clients = useQuery({
     queryKey: ['clients'],
@@ -27,7 +29,7 @@ export default function ClientsPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Client CRM</h1>
+          <h1 className="text-2xl font-semibold">{t('clients.title')}</h1>
           <p className="text-sm text-ink-soft">
             Keep private contact records for marketplace and offline counterparties.
           </p>
@@ -36,25 +38,25 @@ export default function ClientsPage() {
       </header>
 
       <div className="card p-4">
-        <label htmlFor="client-search" className="label">Search clients</label>
+        <label htmlFor="client-search" className="label">{t('clients.title')}</label>
         <input
           id="client-search"
           className="input"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Name, email, city, or linked username"
+          placeholder={t('clients.searchPlaceholder')}
         />
       </div>
 
       {clients.isLoading ? (
-        <div className="card flex items-center gap-2 p-6 text-sm text-ink-soft"><Spinner /> Loading clients…</div>
+        <div className="card flex items-center gap-2 p-6 text-sm text-ink-soft"><Spinner /> {t('common.loading')}</div>
       ) : clients.error ? (
         <PageError message={getMessage(clients.error)} />
       ) : visible.length === 0 ? (
         <EmptyState
-          title={term ? 'No matching clients' : 'No clients yet'}
-          hint={term ? 'Try a different search.' : 'Add a client to reuse their details when recording sales.'}
-          action={!term ? <Link to="/clients/new" className="btn-primary">+ Add client</Link> : undefined}
+          title={t('clients.empty')}
+          hint={t('clients.emptyHint')}
+          action={!term ? <Link to="/clients/new" className="btn-primary">{t('clients.add')}</Link> : undefined}
         />
       ) : (
         <ul className="stagger grid gap-3 sm:grid-cols-2">
@@ -74,7 +76,7 @@ export default function ClientsPage() {
                 </div>
                 <div className="mt-4 flex items-end justify-between text-sm">
                   <div>
-                    <p className="text-xs text-ink-faint">Recorded trades</p>
+                    <p className="text-xs text-ink-faint">{t('clients.recordedTrades')}</p>
                     <p className="font-semibold">{client.tradeCount}</p>
                   </div>
                   <p className="text-xs text-ink-faint">Added {formatDate(client.createdAt)}</p>

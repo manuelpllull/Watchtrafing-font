@@ -1,4 +1,5 @@
 import type { ProblemDetails } from './types';
+import { getStoredLanguage, httpLanguageTag } from '@/lib/language';
 
 const TOKEN_KEY = 'wt.accessToken';
 
@@ -80,7 +81,10 @@ async function refreshToken(): Promise<boolean> {
       const res = await fetch(apiUrl('users/refresh'), {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept-Language': httpLanguageTag(getStoredLanguage()),
+        },
       });
       if (!res.ok) return false;
       const data = await res.json();
@@ -112,6 +116,8 @@ async function doFetch(opts: RequestOptions, withAuth: boolean): Promise<Respons
     const t = getAccessToken();
     if (t) headers.Authorization = `Bearer ${t}`;
   }
+  // Tells the API which language to use for error messages.
+  headers['Accept-Language'] = httpLanguageTag(getStoredLanguage());
   return fetch(apiUrl(opts.path), {
     method: opts.method,
     headers,

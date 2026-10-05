@@ -384,31 +384,34 @@ export interface ProblemDetails {
 }
 
 // Helper labels
-export const CONDITION_LABELS: Record<Condition, string> = {
-  [Condition.New]: 'New',
-  [Condition.LikeNew]: 'Like new',
-  [Condition.VeryGood]: 'Very good',
-  [Condition.Good]: 'Good',
-  [Condition.Fair]: 'Fair',
+/** i18n keys for the enum labels shown in badges and detail rows. */
+export type LabelKey = string;
+
+export const CONDITION_LABELS: Record<Condition, LabelKey> = {
+  [Condition.New]: 'condition.New',
+  [Condition.LikeNew]: 'condition.LikeNew',
+  [Condition.VeryGood]: 'condition.VeryGood',
+  [Condition.Good]: 'condition.Good',
+  [Condition.Fair]: 'condition.Fair',
 };
 
-export const WATCH_STATUS_LABELS: Record<WatchStatus, string> = {
-  [WatchStatus.OwnedOnly]: 'Owned',
-  [WatchStatus.ForSale]: 'For sale',
-  [WatchStatus.Sold]: 'Sold',
+export const WATCH_STATUS_LABELS: Record<WatchStatus, LabelKey> = {
+  [WatchStatus.OwnedOnly]: 'watchStatus.OwnedOnly',
+  [WatchStatus.ForSale]: 'watchStatus.ForSale',
+  [WatchStatus.Sold]: 'watchStatus.Sold',
 };
 
-export const TRADE_STATUS_LABELS: Record<TradeStatus, string> = {
-  [TradeStatus.Pending]: 'Pending',
-  [TradeStatus.InTransit]: 'In transit',
-  [TradeStatus.Completed]: 'Completed',
-  [TradeStatus.Cancelled]: 'Cancelled',
+export const TRADE_STATUS_LABELS: Record<TradeStatus, LabelKey> = {
+  [TradeStatus.Pending]: 'tradeStatus.Pending',
+  [TradeStatus.InTransit]: 'tradeStatus.InTransit',
+  [TradeStatus.Completed]: 'tradeStatus.Completed',
+  [TradeStatus.Cancelled]: 'tradeStatus.Cancelled',
 };
 
-export const EXPENSE_LABELS: Record<ExpenseType, string> = {
-  [ExpenseType.Repair]: 'Repair',
-  [ExpenseType.Service]: 'Service',
-  [ExpenseType.Accessory]: 'Accessory',
-  [ExpenseType.MissingPart]: 'Missing part',
-  [ExpenseType.Shipping]: 'Shipping',
+export const EXPENSE_LABELS: Record<ExpenseType, LabelKey> = {
+  [ExpenseType.Repair]: 'expenseType.Repair',
+  [ExpenseType.Service]: 'expenseType.Service',
+  [ExpenseType.Accessory]: 'expenseType.Accessory',
+  [ExpenseType.MissingPart]: 'expenseType.MissingPart',
+  [ExpenseType.Shipping]: 'expenseType.Shipping',
 };

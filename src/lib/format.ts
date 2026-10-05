@@ -69,13 +69,21 @@ export function formatPercent(p: number): string {
   return `${Number(p).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
 }
 
-export const conditionLabel = (c: Condition) => CONDITION_LABELS[c] ?? String(c);
-export const watchStatusLabel = (s: WatchStatus) =>
-  WATCH_STATUS_LABELS[s] ?? String(s);
-export const tradeStatusLabel = (s: TradeStatus) =>
-  TRADE_STATUS_LABELS[s] ?? String(s);
-export const expenseLabel = (e: ExpenseType) =>
-  EXPENSE_LABELS[e] ?? String(e);
+/**
+ * Minimal shape of the i18n `t` function needed for enum labels. Declared
+ * loosely so this module stays free of React and i18n imports.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Translate = (key: any) => string;
+
+export const conditionLabel = (c: Condition, t: Translate) =>
+  t(CONDITION_LABELS[c] ?? String(c));
+export const watchStatusLabel = (s: WatchStatus, t: Translate) =>
+  t(WATCH_STATUS_LABELS[s] ?? String(s));
+export const tradeStatusLabel = (s: TradeStatus, t: Translate) =>
+  t(TRADE_STATUS_LABELS[s] ?? String(s));
+export const expenseLabel = (e: ExpenseType, t: Translate) =>
+  t(EXPENSE_LABELS[e] ?? String(e));
 
 export function classNames(...xs: (string | false | null | undefined)[]) {
   return xs.filter(Boolean).join(' ');

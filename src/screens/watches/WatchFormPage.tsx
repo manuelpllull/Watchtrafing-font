@@ -22,6 +22,7 @@ import { Condition } from '@/api/types';
 import type { ClientResponse } from '@/api/types';
 import { fromIsoDateTime, toIsoDateTime } from '@/lib/format';
 import { searchUserOptions } from '@/lib/userSearch';
+import { useTranslation } from '@/i18n';
 
 const CONDITION_OPTIONS = [
   { value: Condition.New, label: 'New' },
@@ -108,6 +109,7 @@ const emptySale: SaleState = {
 };
 
 export default function WatchFormPage() {
+  const { t } = useTranslation();
   const { watchId } = useParams<{ watchId?: string }>();
   const isEdit = !!watchId;
   const navigate = useNavigate();
@@ -205,7 +207,7 @@ export default function WatchFormPage() {
     mutationFn: ({ watchId, shareId }: { watchId: string; shareId: string }) =>
       watchesApi.removeShare(watchId, shareId),
     onSuccess: async () => {
-      notify('Invitation removed.', 'success');
+      notify(t('watch.invitationRemoved'), 'success');
       await qc.invalidateQueries({ queryKey: ['watch', watchId] });
       await qc.invalidateQueries({ queryKey: ['myWatches'] });
       await qc.invalidateQueries({ queryKey: ['shareInvites'] });
@@ -237,16 +239,16 @@ export default function WatchFormPage() {
     setError(null);
 
     if (!form.brandId) {
-      setError(makeApiError('Choose a brand.'));
+      setError(makeApiError(t('watch.chooseBrand')));
       return;
     }
     if (!isEdit && sellerText.trim() && !form.boughtFromUserId) {
-      setError(makeApiError('Look up the seller by username to confirm they exist before saving.'));
+      setError(makeApiError(t('watch.boughtFromRequired')));
       return;
     }
     const purchasePrice = Number(form.purchasePrice);
     if (!form.purchasePrice || Number.isNaN(purchasePrice)) {
-      setError(makeApiError('Purchase price is required.'));
+      setError(makeApiError(t('watch.purchasePriceRequired')));
       return;
     }
 
@@ -261,16 +263,16 @@ export default function WatchFormPage() {
     if (sale.recordSale) {
       const sp = Number(sale.salePrice);
       if (!sale.salePrice || Number.isNaN(sp)) {
-        setError(makeApiError('Sale price is required when recording a sale.'));
+        setError(makeApiError(t('watch.salePriceRequired')));
         return;
       }
       if (!sale.saleDate) {
-        setError(makeApiError('Sale date is required when recording a sale.'));
+        setError(makeApiError(t('watch.saleDateRequired')));
         return;
       }
       if (sale.buyerKind === 'platform') {
         if (!sale.buyerUserId) {
-          setError(makeApiError('Choose the buyer from the search results.'));
+          setError(makeApiError(t('watch.buyerRequired')));
           return;
         }
         salePayload = {
@@ -283,7 +285,7 @@ export default function WatchFormPage() {
       } else if (sale.buyerKind === 'client') {
         const selectedClient = clients.data?.find((client) => client.id === sale.buyerClientId);
         if (!selectedClient) {
-          setError(makeApiError('Choose a CRM client first.'));
+          setError(makeApiError(t('watch.crmClientRequired')));
           return;
         }
         salePayload = {
@@ -295,7 +297,7 @@ export default function WatchFormPage() {
         };
       } else {
         if (!sale.buyerExternalName.trim()) {
-          setError(makeApiError('External buyer label is required.'));
+          setError(makeApiError(t('watch.externalBuyerRequired')));
           return;
         }
         salePayload = {
@@ -314,11 +316,11 @@ export default function WatchFormPage() {
     const requiresConfirmation = !!salePayload?.buyerUserId || !!selectedClient?.linkedUserId;
     if (sale.recordSale && requiresConfirmation) {
       const ok = await confirm({
-        title: 'Record this sale?',
+        title: t('watch.recordSaleTitle'),
         message: selectedClient?.linkedUserId
-          ? 'This linked CRM client resolves to a platform user. A pending trade will be created and they must confirm or reject it.'
-          : 'A pending trade will be created. The buyer must confirm or reject it before it completes.',
-        confirmLabel: 'Record sale',
+          ? t('watch.recordSaleLinkedClient')
+          : t('watch.recordSaleConfirmMessage'),
+        confirmLabel: t('watch.recordSaleConfirm'),
       });
       if (!ok) return;
     }
@@ -349,15 +351,15 @@ export default function WatchFormPage() {
       const down = Number(s.moneyDown || 0);
       if (s.isConsignment) {
         if (own !== 0 || down !== 0) {
-          setError(makeApiError('Consignment shares must have 0% ownership and 0 money down.'));
+          setError(makeApiError(t('watch.consignmentRules')));
           return;
         }
         if (prof < 0 || prof > 100) {
-          setError(makeApiError('Consignment profit % must be between 0 and 100.'));
+          setError(makeApiError(t('watch.consignmentProfitRange')));
           return;
         }
       } else if (own <= 0 || own > 100 || down < 0) {
-        setError(makeApiError('Share ownership % must be between 0 and 100, and money down cannot be negative.'));
+        setError(makeApiError(t('watch.shareRules')));
         return;
       }
     }
@@ -389,12 +391,12 @@ export default function WatchFormPage() {
       if (isEdit) await qc.invalidateQueries({ queryKey: ['watch', watchId] });
       notify(
         skippedSale
-          ? 'Watch and shares saved. Record the sale once every share is accepted.'
+          ? t('watch.savedSaleDeferred')
           : sale.recordSale
-            ? 'Watch saved and trade recorded.'
+            ? t('watch.savedAndTrade')
             : validShares.length > 0
-              ? 'Watch and shares saved.'
-              : 'Watch saved.',
+              ? t('watch.savedWithShares')
+              : t('watch.saved'),
         'success',
       );
       navigate(`/watches/${id}`);
@@ -418,9 +420,9 @@ export default function WatchFormPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold">{isEdit ? 'Edit watch' : 'Add watch'}</h1>
+        <h1 className="text-2xl font-semibold">{isEdit ? t('watch.editTitle') : t('watch.addTitle')}</h1>
         <p className="text-sm text-ink-soft">
-          Record details. Optionally mark the watch as sold to create a trade.
+          {t('watch.addSubtitle')}
         </p>
       </header>
 
@@ -437,7 +439,7 @@ export default function WatchFormPage() {
 
       <form onSubmit={onSubmit} className="card space-y-4 p-5">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Brand" htmlFor="brand" required hint="Type to search the catalog.">
+          <Field label={t('watch.brand')} htmlFor="brand" required hint={t('watch.brandHint')}>
             <SearchCombobox
               id="brand"
               value={form.brandId}
@@ -445,32 +447,32 @@ export default function WatchFormPage() {
               disabled={submitting || brands.isLoading}
               idleOptions={brandOptions}
               search={searchBrands}
-              placeholder="Start typing a brand…"
+              placeholder={t('watch.brandPlaceholder')}
               onSelect={(id, name) => {
                 setBrandName(name);
                 setForm((f) => ({ ...f, brandId: id }));
               }}
             />
           </Field>
-          <Field label="Model" htmlFor="model" required>
+          <Field label={t('watch.model')} htmlFor="model" required>
             <Input id="model" value={form.model} onChange={set('model')} disabled={submitting} required />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Reference" htmlFor="reference">
+          <Field label={t('watch.reference')} htmlFor="reference">
             <Input id="reference" value={form.referenceNumber} onChange={set('referenceNumber')} disabled={submitting} />
           </Field>
-          <Field label="Year" htmlFor="year">
+          <Field label={t('watch.year')} htmlFor="year">
             <Input id="year" type="number" value={form.year} onChange={set('year')} disabled={submitting} />
           </Field>
-          <Field label="Serial" htmlFor="serial" hint="Private — not exposed publicly.">
+          <Field label={t('watch.serial')} htmlFor="serial" hint={t('watch.descriptionHint')}>
             <Input id="serial" value={form.serialNumber} onChange={set('serialNumber')} disabled={submitting} />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Condition" htmlFor="condition" required>
+          <Field label={t('watch.condition')} htmlFor="condition" required>
             <Select id="condition" value={form.condition} onChange={set('condition')} disabled={submitting}>
               {CONDITION_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -481,13 +483,13 @@ export default function WatchFormPage() {
           </Field>
           <div className="flex items-end gap-4">
             <Checkbox
-              label="Box included"
+              label={t('watch.boxIncluded')}
               checked={form.boxIncluded}
               onChange={set('boxIncluded')}
               disabled={submitting}
             />
             <Checkbox
-              label="Papers included"
+              label={t('watch.papersIncluded')}
               checked={form.papersIncluded}
               onChange={set('papersIncluded')}
               disabled={submitting}
@@ -495,28 +497,28 @@ export default function WatchFormPage() {
           </div>
         </div>
 
-        <Field label="Description" htmlFor="description">
+        <Field label={t('watch.description')} htmlFor="description">
           <Textarea id="description" value={form.description} onChange={set('description')} disabled={submitting} />
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Purchase price" htmlFor="purchasePrice" required hint="In EUR.">
+          <Field label={t('watch.purchasePrice')} htmlFor="purchasePrice" required hint={t('watch.purchasePriceHint')}>
             <Input id="purchasePrice" type="number" step="0.01" min="0" value={form.purchasePrice} onChange={set('purchasePrice')} disabled={submitting} required />
           </Field>
-          <Field label="Purchase date" htmlFor="purchaseDate" required>
+          <Field label={t('watch.purchaseDate')} htmlFor="purchaseDate" required>
             <Input id="purchaseDate" type="datetime-local" value={form.purchaseDate} onChange={set('purchaseDate')} disabled={submitting} required />
           </Field>
         </div>
 
         {!isEdit && (
-          <Field label="Bought from (platform user)" htmlFor="boughtFrom" hint="Optional. Type a username — users blocked by you (or who blocked you) won't show up.">
+          <Field label={t('watch.boughtFrom')} htmlFor="boughtFrom" hint={t('watch.boughtFromHint')}>
             <SearchCombobox
               id="boughtFrom"
               value={form.boughtFromUserId}
               selectedLabel={sellerText}
               disabled={submitting}
               search={searchUserOptions}
-              placeholder="e.g. johndoe"
+              placeholder={t('counterparty.placeholder')}
               onSelect={(id, name) => {
                 setSellerText(name);
                 setForm((f) => ({ ...f, boughtFromUserId: id }));
@@ -527,9 +529,9 @@ export default function WatchFormPage() {
 
         {/* Sale / trade section — workflow §4.1 */}
         <fieldset className="rounded-xl border border-surface-line p-4">
-          <legend className="px-1 text-sm font-semibold">Record a sale (optional)</legend>
+          <legend className="px-1 text-sm font-semibold">{t('watch.saleSection')}</legend>
           <Checkbox
-            label="I sold this watch — create a trade"
+            label={t('watch.saleCheckbox')}
             checked={sale.recordSale}
             onChange={setSaleField('recordSale')}
             disabled={submitting}
@@ -537,27 +539,27 @@ export default function WatchFormPage() {
           {sale.recordSale && (
             <div className="mt-4 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Sale price" htmlFor="salePrice" required>
+                <Field label={t('watch.salePrice')} htmlFor="salePrice" required>
                   <Input id="salePrice" type="number" step="0.01" min="0" value={sale.salePrice} onChange={setSaleField('salePrice')} disabled={submitting} required />
                 </Field>
-                <Field label="Sale date" htmlFor="saleDate" required>
+                <Field label={t('watch.saleDate')} htmlFor="saleDate" required>
                   <Input id="saleDate" type="datetime-local" value={sale.saleDate} onChange={setSaleField('saleDate')} disabled={submitting} required />
                 </Field>
               </div>
 
-              <Field label="Buyer" htmlFor="buyerKind">
+              <Field label={t('watch.buyerKind')} htmlFor="buyerKind">
                 <Select id="buyerKind" value={sale.buyerKind} onChange={setSaleField('buyerKind')} disabled={submitting}>
-                  <option value="external">External buyer (non-platform)</option>
-                  <option value="platform">Platform user</option>
-                  <option value="client">CRM client</option>
+                  <option value="external">{t('watch.buyerKindExternal')}</option>
+                  <option value="platform">{t('watch.buyerKindPlatform')}</option>
+                  <option value="client">{t('watch.buyerKindClient')}</option>
                 </Select>
               </Field>
 
               {sale.buyerKind === 'platform' ? (
                 <Field
-                  label="Buyer"
+                  label={t('watch.buyerKind')}
                   htmlFor="buyerUserName"
-                  hint="Type to search. Platform buyers must confirm the trade before it counts as a sale."
+                  hint={t('watch.buyerRequired')}
                 >
                   <SearchCombobox
                     id="buyerUserName"
@@ -565,7 +567,7 @@ export default function WatchFormPage() {
                     selectedLabel={sale.buyerUserName}
                     disabled={submitting}
                     search={searchUserOptions}
-                    placeholder="e.g. johndoe"
+                    placeholder={t('counterparty.placeholder')}
                     onSelect={(id, label) =>
                       setSale((s) => ({
                         ...s,
@@ -578,9 +580,9 @@ export default function WatchFormPage() {
                 </Field>
               ) : sale.buyerKind === 'client' ? (
                 <div className="space-y-2">
-                  <Field label="CRM client" htmlFor="buyerClientId" hint="The client is private to your CRM. Linked clients require platform confirmation.">
+                  <Field label={t('watch.crmClient')} htmlFor="buyerClientId" hint={t('watch.crmClientHint')}>
                     <Select id="buyerClientId" value={sale.buyerClientId} onChange={setSaleField('buyerClientId')} disabled={submitting}>
-                      <option value="">Choose a client…</option>
+                      <option value="">{t('watch.chooseClient')}</option>
                       {clients.data?.map((client) => (
                         <option key={client.id} value={client.id}>
                           {client.name}{client.linkedUserName ? ` · @${client.linkedUserName}` : ' · external'}
@@ -588,18 +590,18 @@ export default function WatchFormPage() {
                       ))}
                     </Select>
                   </Field>
-                  {clients.isLoading && <p className="text-sm text-ink-soft">Loading your clients…</p>}
-                  {clients.error && <p className="text-sm text-red-600 dark:text-red-400">Unable to load CRM clients.</p>}
+                  {clients.isLoading && <p className="text-sm text-ink-soft">{t('watch.loadingClients')}</p>}
+                  {clients.error && <p className="text-sm text-red-600 dark:text-red-400">{t('watch.crmClientLoadFailed')}</p>}
                   <Link to="/clients/new" className="inline-block text-sm font-medium text-brand-600 hover:underline">
-                    + Add a new CRM client
+                    {t('watch.addClient')}
                   </Link>
                   {sale.buyerClientId && (
                     <ClientSaleHint client={clients.data?.find((client) => client.id === sale.buyerClientId)} />
                   )}
                 </div>
               ) : (
-                <Field label="External buyer label" htmlFor="buyerExternalName" hint="Free text, e.g. 'Local dealer'. Trade completes immediately.">
-                  <Input id="buyerExternalName" value={sale.buyerExternalName} onChange={setSaleField('buyerExternalName')} disabled={submitting} placeholder="Local dealer" />
+                <Field label={t('watch.externalBuyerLabel')} htmlFor="buyerExternalName" hint={t('watch.externalBuyerHint')}>
+                  <Input id="buyerExternalName" value={sale.buyerExternalName} onChange={setSaleField('buyerExternalName')} disabled={submitting} placeholder={t('trades.externalBuyerPlaceholder')} />
                 </Field>
               )}
             </div>
@@ -607,10 +609,9 @@ export default function WatchFormPage() {
         </fieldset>
 
         <fieldset className="rounded-xl border border-surface-line p-4">
-          <legend className="px-1 text-sm font-semibold">Co-owners &amp; consignment (optional)</legend>
+          <legend className="px-1 text-sm font-semibold">{t('watch.sharesSection')}</legend>
           <p className="mb-3 text-xs text-ink-soft">
-            Split ownership and profit on sale. Each co-owner receives an invitation and must accept it
-            before a sale can be recorded.
+            {t('watch.sharesHint')}
           </p>
 
           {isEdit && existingShares.length > 0 && (
@@ -620,7 +621,7 @@ export default function WatchFormPage() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
                       {s.userName ? `@${s.userName}` : s.externalName || 'Unknown'}
-                      {s.isConsignment && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">consignment</span>}
+                      {s.isConsignment && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">{t('watchDetail.consignment')}</span>}
                     </p>
                     <p className="text-xs text-ink-faint">
                       Own {s.ownershipPercentage}% · Profit {s.profitPercentage}% · Money down {s.moneyDown}
@@ -632,10 +633,10 @@ export default function WatchFormPage() {
                       <button
                         type="button"
                         className="btn-ghost px-2 py-1 text-xs text-red-600 dark:text-red-400"
-                        onClick={() => onRemoveExistingShare(s.id, s.userName ? `@${s.userName}` : s.externalName || 'co-owner')}
+                        onClick={() => onRemoveExistingShare(s.id, s.userName ? `@${s.userName}` : s.externalName || t('watch.coOwner'))}
                         disabled={removeShare.isPending}
                       >
-                        Remove
+                        {t('watch.removeInvitationTitle')}
                       </button>
                     )}
                   </div>
@@ -680,7 +681,7 @@ export default function WatchFormPage() {
                   onClick={() => setShares((s) => [...s, emptyShare()])}
                   disabled={submitting}
                 >
-                  + Add another
+                  {t('watch.addAnother')}
                 </button>
                 <ShareTotals shares={shares} />
               </div>
@@ -739,11 +740,12 @@ function ShareDraftRow({
   onRemove: () => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-lg border border-surface-line bg-ink/[0.02] p-3">
       <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-40 flex-1">
-          <Field label="Co-owner type">
+          <Field label={t('watch.coOwnerType')}>
             <Select
               value={share.kind}
               onChange={(e) =>
@@ -751,8 +753,8 @@ function ShareDraftRow({
               }
               disabled={disabled}
             >
-              <option value="platform">Platform user</option>
-              <option value="external">External person</option>
+              <option value="platform">{t('watch.buyerKindPlatform')}</option>
+              <option value="external">{t('watchDetail.externalName')}</option>
             </Select>
           </Field>
         </div>
@@ -760,9 +762,9 @@ function ShareDraftRow({
         {share.kind === 'platform' ? (
           <div className="min-w-48 flex-[2]">
             <Field
-              label="Co-owner"
+              label={t('watch.coOwner')}
               htmlFor={`share-user-${share.key}`}
-              hint="Type to search. They'll be invited and must accept before a sale can be recorded."
+              hint={t('watch.coOwnerHint')}
             >
               <SearchCombobox
                 id={`share-user-${share.key}`}
@@ -770,19 +772,19 @@ function ShareDraftRow({
                 selectedLabel={share.userName}
                 disabled={disabled}
                 search={searchUserOptions}
-                placeholder="e.g. johndoe"
+                placeholder={t('counterparty.placeholder')}
                 onSelect={(id, label) => onChange({ userId: id, userName: label })}
               />
             </Field>
           </div>
         ) : (
           <div className="min-w-48 flex-[2]">
-            <Field label="External name" required>
+            <Field label={t('watch.externalName')} required>
               <Input
                 value={share.externalName}
                 onChange={(e) => onChange({ externalName: e.target.value })}
                 disabled={disabled}
-                placeholder="Local partner"
+                placeholder={t('watchDetail.externalNamePlaceholder')}
               />
             </Field>
           </div>
@@ -793,14 +795,14 @@ function ShareDraftRow({
           className="btn-ghost mt-6 px-2 text-red-600 dark:text-red-400"
           onClick={onRemove}
           disabled={disabled}
-          aria-label="Remove co-owner"
+          aria-label={t('watch.removeCoOwner')}
         >
-          Remove
+          {t('common.remove')}
         </button>
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-3">
-        <Field label="Ownership %">
+        <Field label={t('watch.ownership')}>
           <Input
             type="number"
             step="0.01"
@@ -812,7 +814,7 @@ function ShareDraftRow({
             placeholder="50"
           />
         </Field>
-        <Field label="Profit %">
+        <Field label={t('watch.profit')}>
           <Input
             type="number"
             step="0.01"
@@ -821,10 +823,10 @@ function ShareDraftRow({
             value={share.profitPercentage}
             onChange={(e) => onChange({ profitPercentage: e.target.value })}
             disabled={disabled}
-            placeholder="defaults to ownership"
+            placeholder={t('watch.profitDefaults')}
           />
         </Field>
-        <Field label="Money down">
+        <Field label={t('watch.moneyDown')}>
           <Input
             type="number"
             step="0.01"
@@ -849,13 +851,14 @@ function ShareDraftRow({
           }
           disabled={disabled}
         />
-        Consignment (no capital stake, just a profit cut)
+        {t('watch.consignment')}
       </label>
     </div>
   );
 }
 
 function ShareTotals({ shares }: { shares: ShareDraft[] }) {
+  const { t } = useTranslation();
   const own = shares.reduce((sum, s) => sum + Number(s.ownershipPercentage || 0), 0);
   const prof = shares.reduce(
     (sum, s) => sum + Number(s.profitPercentage || s.ownershipPercentage || 0),
@@ -864,8 +867,8 @@ function ShareTotals({ shares }: { shares: ShareDraft[] }) {
   const ok = Math.abs(own - 100) < 0.01 && Math.abs(prof - 100) < 0.01;
   return (
     <p className="text-xs text-ink-soft">
-      Totals — ownership: {own.toFixed(2)}% · profit: {prof.toFixed(2)}%
-      {!ok && <span className="ml-1 text-amber-700 dark:text-amber-400">(accepted shares must total 100% each before a sale)</span>}
+      {t('watch.totalOwnership')}: {own.toFixed(2)}% · {t('watch.totalProfit')}: {prof.toFixed(2)}%
+      {!ok && <span className="ml-1 text-amber-700 dark:text-amber-400">{t('watch.overHundred')}</span>}
     </p>
   );
 }

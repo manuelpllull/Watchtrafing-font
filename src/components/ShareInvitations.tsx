@@ -6,15 +6,22 @@ import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { Spinner } from '@/components/ui/Spinner';
 import { ShareBadge } from '@/components/ui/Badge';
 import { formatMoney, formatPercent, formatDate } from '@/lib/format';
+import { useTranslation } from '@/i18n';
 
 function InvitationTerms({ invitation }: { invitation: MyShareInvitation }) {
+  const { t } = useTranslation();
+
   return (
     <p className="mt-1 text-xs text-ink-faint">
       {invitation.isConsignment
-        ? `Consignment · ${formatPercent(invitation.profitPercentage)}% profit`
-        : `${formatPercent(invitation.ownershipPercentage)}% ownership · ${formatPercent(
-            invitation.profitPercentage,
-          )}% profit · ${formatMoney(invitation.moneyDown)} down`}
+        ? t('invitations.consignmentTerms', {
+            profit: formatPercent(invitation.profitPercentage),
+          })
+        : t('invitations.shareTerms', {
+            ownership: formatPercent(invitation.ownershipPercentage),
+            profit: formatPercent(invitation.profitPercentage),
+            money: formatMoney(invitation.moneyDown),
+          })}
     </p>
   );
 }
@@ -24,6 +31,7 @@ function InvitationTerms({ invitation }: { invitation: MyShareInvitation }) {
  * which the dashboard does not need.
  */
 export function ShareInvitationsList({ showHistory = false }: { showHistory?: boolean }) {
+  const { t, rt } = useTranslation();
   const { pending, resolved, resolve, isLoading, error } = useShareInvitations();
 
   if (isLoading) {
@@ -41,10 +49,7 @@ export function ShareInvitationsList({ showHistory = false }: { showHistory?: bo
   return (
     <div className="space-y-6">
       {pending.length === 0 ? (
-        <EmptyState
-          title="No pending invitations"
-          hint="When someone invites you as a co-owner or consignee, it shows up here."
-        />
+        <EmptyState title={t('invitations.pendingEmpty')} hint={t('invitations.pendingEmptyHint')} />
       ) : (
         <ul className="card divide-y divide-surface-line">
           {pending.map((invitation) => (
@@ -52,19 +57,25 @@ export function ShareInvitationsList({ showHistory = false }: { showHistory?: bo
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
-                    <span className="font-semibold">@{invitation.inviterUserName}</span> invited you to
-                    co-own{' '}
-                    <Link
-                      to={`/watches/${invitation.watchId}`}
-                      className="font-semibold text-brand-700 hover:underline dark:text-brand-300"
-                    >
-                      {invitation.watchLabel}
-                    </Link>
+                    {rt('invitations.invitedYou', {
+                      inviter: invitation.inviterUserName,
+                      watch: (
+                        <Link
+                          key="watch"
+                          to={`/watches/${invitation.watchId}`}
+                          className="font-semibold text-brand-700 hover:underline dark:text-brand-300"
+                        >
+                          {invitation.watchLabel}
+                        </Link>
+                      ),
+                    })}
                   </p>
                   <InvitationTerms invitation={invitation} />
                   <p className="mt-1 text-xs text-ink-faint">
-                    Invited {formatDate(invitation.createdAt)}
-                    {invitation.referenceNumber ? ` · Ref ${invitation.referenceNumber}` : ''}
+                    {t('invitations.invitedOn', { date: formatDate(invitation.createdAt) })}
+                    {invitation.referenceNumber
+                      ? ` · ${t('invitations.ref', { ref: invitation.referenceNumber })}`
+                      : ''}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
@@ -74,7 +85,7 @@ export function ShareInvitationsList({ showHistory = false }: { showHistory?: bo
                     onClick={() => resolve.mutate({ id: invitation.id, accept: false })}
                     disabled={resolve.isPending}
                   >
-                    Decline
+                    {t('invitations.decline')}
                   </button>
                   <button
                     type="button"
@@ -82,7 +93,7 @@ export function ShareInvitationsList({ showHistory = false }: { showHistory?: bo
                     onClick={() => resolve.mutate({ id: invitation.id, accept: true })}
                     disabled={resolve.isPending}
                   >
-                    Accept
+                    {t('invitations.accept')}
                   </button>
                 </div>
               </div>
@@ -93,7 +104,7 @@ export function ShareInvitationsList({ showHistory = false }: { showHistory?: bo
 
       {showHistory && resolved.length > 0 && (
         <section>
-          <h2 className="mb-2 text-lg font-semibold">Resolved</h2>
+          <h2 className="mb-2 text-lg font-semibold">{t('invitations.resolved')}</h2>
           <ul className="card divide-y divide-surface-line">
             {resolved.map((invitation) => (
               <li

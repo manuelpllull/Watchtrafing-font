@@ -1,4 +1,5 @@
 import { classNames } from '@/lib/format';
+import { useTranslation } from '@/i18n';
 import type {
   TradeStatus,
   WatchStatus,
@@ -25,22 +26,24 @@ export function Badge({
 }
 
 export function WatchStatusBadge({ status }: { status: WatchStatus }) {
+  const { t } = useTranslation();
   const map: Record<WatchStatus, keyof typeof tone> = {
     0: 'slate',
     1: 'green',
     2: 'blue',
   };
-  return <Badge color={map[status]}>{watchStatusLabel(status)}</Badge>;
+  return <Badge color={map[status]}>{watchStatusLabel(status, t)}</Badge>;
 }
 
 export function TradeStatusBadge({ status }: { status: TradeStatus }) {
+  const { t } = useTranslation();
   const map: Record<TradeStatus, keyof typeof tone> = {
     0: 'amber',
     1: 'blue',
     2: 'green',
     3: 'red',
   };
-  return <Badge color={map[status]}>{tradeStatusLabel(status)}</Badge>;
+  return <Badge color={map[status]}>{tradeStatusLabel(status, t)}</Badge>;
 }
 
 export function ShareBadge({ status }: { status: string }) {

@@ -12,8 +12,10 @@ import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { formatMoney, formatDate } from '@/lib/format';
 import { WatchStatusBadge } from '@/components/ui/Badge';
 import { TradeStatus, WatchStatus } from '@/api/types';
+import { useTranslation } from '@/i18n';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { session } = useAuth();
 
   const watches = useQuery({
@@ -55,7 +57,7 @@ export default function DashboardPage() {
     <div className="space-y-7">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-semibold">Welcome back</h1>
+          <h1 className="text-3xl font-semibold">{t('dashboard.welcome')}</h1>
           <p className="mt-1 text-sm text-ink-soft">{session?.email}</p>
         </div>
         <Link to="/watches/new" className="btn-primary">
@@ -65,30 +67,30 @@ export default function DashboardPage() {
       </header>
 
       <div className="stagger grid gap-4 sm:grid-cols-3">
-        <StatCard label="Watches" value={String(myWatches.length)} loading={watches.isLoading} icon={Watch} />
-        <StatCard label="Collection value" value={formatMoney(collectionValue)} loading={watches.isLoading} icon={TrendingUp} />
-        <StatCard label="Recorded sales profit" value={formatMoney(soldProfit)} loading={watches.isLoading} icon={Coins} />
+        <StatCard label={t('dashboard.watches')} value={String(myWatches.length)} loading={watches.isLoading} icon={Watch} />
+        <StatCard label={t('dashboard.collectionValue')} value={formatMoney(collectionValue)} loading={watches.isLoading} icon={TrendingUp} />
+        <StatCard label={t('dashboard.salesProfit')} value={formatMoney(soldProfit)} loading={watches.isLoading} icon={Coins} />
       </div>
 
       <section>
-        <SectionHeader title="Share invitations" to="/invitations" linkLabel="View all" />
+        <SectionHeader title={t('invitations.title')} to="/invitations" linkLabel={t('nav.viewAll')} />
         <ShareInvitationsList />
       </section>
 
       <section>
-        <SectionHeader title="Pending trades" to="/trades" linkLabel="View all" />
+        <SectionHeader title={t('dashboard.pendingTrades')} to="/trades" linkLabel={t('nav.viewAll')} />
         {tradesQueries.isLoading ? (
           <div className="card flex items-center gap-2 p-4 text-sm text-ink-soft"><Spinner /> Loading trades…</div>
         ) : tradesQueries.error ? (
           <PageError message={getMessage(tradesQueries.error)} />
         ) : pendingTrades.length === 0 ? (
-          <EmptyState title="No pending trades" hint="Trades awaiting confirmation will appear here." />
+          <EmptyState title={t('dashboard.pendingTradesEmpty')} hint={t('dashboard.pendingTradesHint')} />
         ) : (
           <ul className="stagger card divide-y divide-surface-line">
-            {pendingTrades.map((t) => (
-              <li key={t.id}>
+            {pendingTrades.map((trade) => (
+              <li key={trade.id}>
                 <Link
-                  to={`/trades/${t.id}`}
+                  to={`/trades/${trade.id}`}
                   className="flex items-center gap-3 px-3 py-3 transition hover:bg-ink/10 sm:px-4"
                 >
                   <span className="avatar h-8 w-8 shrink-0 bg-ink/10 text-ink-soft">
@@ -96,14 +98,14 @@ export default function DashboardPage() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
-                      {t.buyerUserName ||
-                        (t.buyerClientId ? `CRM client · ${t.buyerExternalName || 'client'}` : null) ||
-                        t.buyerExternalName ||
-                        'External buyer'}
+                      {trade.buyerUserName ||
+                        (trade.buyerClientId ? `CRM client · ${trade.buyerExternalName || 'client'}` : null) ||
+                        trade.buyerExternalName ||
+                        t('dashboard.externalBuyer')}
                     </span>
-                    <span className="block text-xs text-ink-faint">{formatDate(t.saleDate)}</span>
+                    <span className="block text-xs text-ink-faint">{formatDate(trade.saleDate)}</span>
                   </span>
-                  <span className="shrink-0 text-sm font-semibold">{formatMoney(t.salePrice)}</span>
+                  <span className="shrink-0 text-sm font-semibold">{formatMoney(trade.salePrice)}</span>
                 </Link>
               </li>
             ))}
@@ -113,13 +115,13 @@ export default function DashboardPage() {
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="min-w-0">
-          <SectionHeader title="Recent watches" to="/watches" linkLabel="View collection" />
+          <SectionHeader title={t('dashboard.recentWatches')} to="/watches" linkLabel={t('nav.viewCollection')} />
           {watches.isLoading ? (
             <div className="card p-4 text-sm text-ink-soft"><Spinner /> Loading…</div>
           ) : watches.error ? (
             <PageError message={getMessage(watches.error)} />
           ) : myWatches.length === 0 ? (
-            <EmptyState title="No watches yet" hint="Add your first timepiece to start." action={<Link to="/watches/new" className="btn-primary">Add watch</Link>} />
+            <EmptyState title={t('dashboard.noWatchesYet')} hint={t('dashboard.noWatchesHint')} action={<Link to="/watches/new" className="btn-primary">{t('nav.addWatch')}</Link>} />
           ) : (
             <ul className="stagger card divide-y divide-surface-line">
               {myWatches.slice(0, 5).map((w) => (
@@ -149,13 +151,13 @@ export default function DashboardPage() {
         </div>
 
         <div className="min-w-0">
-          <SectionHeader title="Recent activity" />
+          <SectionHeader title={t('dashboard.recentActivity')} />
           {activity.isLoading ? (
             <div className="card p-4 text-sm text-ink-soft"><Spinner /> Loading…</div>
           ) : activity.error ? (
             <PageError message={getMessage(activity.error)} />
           ) : (activity.data?.length ?? 0) === 0 ? (
-            <EmptyState title="No activity yet" />
+            <EmptyState title={t('dashboard.noActivityYet')} />
           ) : (
             <ul className="stagger card divide-y divide-surface-line">
               {activity.data!.slice(0, 6).map((a) => (

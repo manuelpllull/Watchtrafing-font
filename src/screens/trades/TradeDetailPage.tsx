@@ -13,10 +13,12 @@ import { Field, Input, Select } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { formatDate, formatDateTime, formatMoney, formatPercent, fromIsoDateTime } from '@/lib/format';
 import { TradeStatus, type TradeResponse } from '@/api/types';
+import { useTranslation } from '@/i18n';
 
 const QUERY_KEY = (id: string) => ['trade', id];
 
 export default function TradeDetailPage() {
+  const { t } = useTranslation();
   const { tradeId } = useParams<{ tradeId: string }>();
   const { notify } = useToast();
   const qc = useQueryClient();
@@ -49,7 +51,7 @@ export default function TradeDetailPage() {
     try {
       await fn();
       await refresh();
-      notify(`${label}.`, 'success');
+      notify(label, 'success');
     } catch (err) {
       notify(getMessage(err), 'error');
     }
@@ -62,54 +64,54 @@ export default function TradeDetailPage() {
   if (trade.isLoading) return <div className="flex justify-center py-16"><Spinner className="h-8 w-8 text-brand-600" /></div>;
   if (trade.error) return <PageError message={getMessage(trade.error)} />;
   if (!trade.data) return null;
-  const t = trade.data;
-  const pending = t.status === TradeStatus.Pending;
+  const data = trade.data;
+  const pending = data.status === TradeStatus.Pending;
 
   return (
     <div className="space-y-5">
       <nav className="text-sm text-ink-soft">
-        <Link to="/trades" className="hover:underline">Trades</Link> /{' '}
-        <span className="text-ink">{t.id.slice(0, 8)}…</span>
+        <Link to="/trades" className="hover:underline">{t('trades.title')}</Link> /{' '}
+        <span className="text-ink">{data.id.slice(0, 8)}…</span>
       </nav>
 
       <header className="card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold">
-              Trade · {formatMoney(t.salePrice)}
+              Trade · {formatMoney(data.salePrice)}
             </h1>
             <p className="text-sm text-ink-soft">
-              {t.buyerUserId
-                ? `Buyer: ${t.buyerUserName || 'platform user'}`
-                : t.buyerClientId
-                  ? `CRM client: ${t.buyerExternalName || 'client'}`
-                  : `External buyer: ${t.buyerExternalName || '—'}`}
+              {data.buyerUserId
+                ? `Buyer: ${data.buyerUserName || 'platform user'}`
+                : data.buyerClientId
+                  ? `CRM client: ${data.buyerExternalName || 'client'}`
+                  : `External buyer: ${data.buyerExternalName || '—'}`}
             </p>
           </div>
-          <TradeStatusBadge status={t.status} />
+          <TradeStatusBadge status={data.status} />
         </div>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-          <Detail label="Sale date" value={formatDate(t.saleDate)} />
-          <Detail label="Created" value={formatDateTime(t.createdAt)} />
-          <Detail label="Completed" value={formatDateTime(t.completedAt)} />
-          <Detail label="Cancelled" value={formatDateTime(t.cancelledAt)} />
-          <Detail label="Payment ref" value={t.paymentReference || '—'} />
-          <Detail label="Shipping ref" value={t.shippingReference || '—'} />
+          <Detail label={t('trades.saleDate')} value={formatDate(data.saleDate)} />
+          <Detail label={t('trades.created')} value={formatDateTime(data.createdAt)} />
+          <Detail label={t('tradeStatus.Completed')} value={formatDateTime(data.completedAt)} />
+          <Detail label={t('tradeStatus.Cancelled')} value={formatDateTime(data.cancelledAt)} />
+          <Detail label={t('trades.paymentRef')} value={data.paymentReference || '—'} />
+          <Detail label={t('trades.shippingRef')} value={data.shippingReference || '—'} />
         </dl>
 
         <div className="mt-4 flex items-center justify-between text-sm">
-          <Link to={`/watches/${t.watchId}`} className="font-medium text-brand-600 hover:underline">
+          <Link to={`/watches/${data.watchId}`} className="font-medium text-brand-600 hover:underline">
             View watch →
           </Link>
-          {t.status !== TradeStatus.Cancelled && (
+          {data.status !== TradeStatus.Cancelled && (
             <button type="button" className="btn-secondary px-3 py-1.5 text-[13px]" onClick={() => setEditOpen(true)}>
               Edit trade
             </button>
           )}
         </div>
 
-        {(pending || t.status === TradeStatus.InTransit) && (
+        {(pending || data.status === TradeStatus.InTransit) && (
           <div className="mt-5 flex flex-wrap gap-2 border-t border-surface-line pt-4">
             {pending && (
               <>
@@ -118,39 +120,39 @@ export default function TradeDetailPage() {
                   className="btn-primary"
                   disabled={confirmMut.isPending}
                   onClick={() =>
-                    act('Trade confirmed', () => confirmMut.mutateAsync(), {
+                    act(t('trades.confirmed'), () => confirmMut.mutateAsync(), {
                       confirm: {
-                        title: 'Confirm this trade?',
-                        message: 'Confirming completes the trade and replicates the watch to the buyer.',
-                        confirmLabel: 'Confirm',
+                        title: t('trades.confirmTitle'),
+                        message: t('trades.confirmMessage'),
+                        confirmLabel: t('trades.confirm'),
                       },
                     })
                   }
                 >
-                  {confirmMut.isPending ? 'Confirming…' : 'Confirm'}
+                  {confirmMut.isPending ? t('trades.confirming') : t('trades.confirm')}
                 </button>
                 <button
                   type="button"
                   className="btn-danger"
                   disabled={rejectMut.isPending}
                   onClick={() =>
-                    act('Trade rejected', () => rejectMut.mutateAsync(), {
+                    act(t('trades.rejected'), () => rejectMut.mutateAsync(), {
                       confirm: {
-                        title: 'Reject this trade?',
-                        message: 'The trade will be cancelled. No ownership data will change.',
-                        confirmLabel: 'Reject',
+                        title: t('trades.rejectTitle'),
+                        message: t('trades.rejectMessage'),
+                        confirmLabel: t('trades.reject'),
                         tone: 'danger',
                       },
                     })
                   }
                 >
-                  {rejectMut.isPending ? 'Rejecting…' : 'Reject'}
+                  {rejectMut.isPending ? t('trades.rejecting') : t('trades.reject')}
                 </button>
               </>
             )}
             {pending && (
               <button type="button" className="btn-secondary" onClick={() => setInTransitOpen(true)}>
-                Mark in transit
+                {t('trades.markInTransit')}
               </button>
             )}
             <button
@@ -158,40 +160,40 @@ export default function TradeDetailPage() {
               className="btn-secondary"
               disabled={cancelMut.isPending}
               onClick={() =>
-                act('Trade cancelled', () => cancelMut.mutateAsync(), {
+                act(t('trades.cancelled'), () => cancelMut.mutateAsync(), {
                   confirm: {
-                    title: 'Cancel this trade?',
-                    message: 'This cancels the trade. The seller can create a new one if needed.',
-                    confirmLabel: 'Cancel trade',
+                    title: t('trades.cancelTitle'),
+                    message: t('trades.cancelMessage'),
+                    confirmLabel: t('trades.cancelTrade'),
                     tone: 'danger',
                   },
                 })
               }
             >
-              {cancelMut.isPending ? 'Cancelling…' : 'Cancel'}
+              {cancelMut.isPending ? t('trades.cancelling') : t('trades.cancel')}
             </button>
           </div>
         )}
 
-        {t.status === TradeStatus.InTransit && (
+        {data.status === TradeStatus.InTransit && (
           <div className="mt-5 flex flex-wrap gap-2 border-t border-surface-line pt-4">
             <button type="button" className="btn-primary" onClick={() => setCompleteOpen(true)}>
-              Mark completed
+              {t('trades.markCompleted')}
             </button>
           </div>
         )}
       </header>
 
-      {t.settlements.length > 0 && (
+      {data.settlements.length > 0 && (
         <section>
-          <h2 className="mb-2 text-lg font-semibold">Settlements</h2>
+          <h2 className="mb-2 text-lg font-semibold">{t('trades.settlements')}</h2>
           <ul className="card divide-y divide-surface-line">
-            {t.settlements.map((s) => (
+            {data.settlements.map((s) => (
               <li key={s.id} className="flex items-center justify-between px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium">{s.shareholderName || 'Shareholder'}</p>
+                  <p className="text-sm font-medium">{s.shareholderName || t('trades.shareholder')}</p>
                   <p className="text-xs text-ink-faint">
-                    Profit {formatPercent(s.profitPercentage)} · {formatMoney(s.profitAmount)}
+                    {t('trades.profit')} {formatPercent(s.profitPercentage)} · {formatMoney(s.profitAmount)}
                   </p>
                 </div>
                 <span className="text-sm font-semibold">{formatMoney(s.payoutAmount)}</span>
@@ -202,13 +204,13 @@ export default function TradeDetailPage() {
       )}
 
       {inTransitOpen && (
-        <InTransitModal tradeId={t.id} onClose={() => setInTransitOpen(false)} />
+        <InTransitModal tradeId={data.id} onClose={() => setInTransitOpen(false)} />
       )}
       {completeOpen && (
-        <CompleteModal tradeId={t.id} onClose={() => setCompleteOpen(false)} />
+        <CompleteModal tradeId={data.id} onClose={() => setCompleteOpen(false)} />
       )}
       {editOpen && (
-        <EditTradeModal trade={t} onClose={() => setEditOpen(false)} />
+        <EditTradeModal trade={data} onClose={() => setEditOpen(false)} />
       )}
       {dialog}
     </div>
@@ -225,6 +227,7 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function InTransitModal({ tradeId, onClose }: { tradeId: string; onClose: () => void }) {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const [shippingReference, setShippingReference] = useState('');
@@ -237,7 +240,7 @@ function InTransitModal({ tradeId, onClose }: { tradeId: string; onClose: () => 
       await tradesApi.markInTransit(tradeId, { shippingReference: shippingReference.trim() || null });
       await qc.invalidateQueries({ queryKey: QUERY_KEY(tradeId) });
       await qc.invalidateQueries({ queryKey: ['allMyTrades'] });
-      notify('Trade marked in transit.', 'success');
+      notify(t('trades.markedInTransit'), 'success');
       onClose();
     } catch (err) {
       notify(getMessage(err), 'error');
@@ -248,13 +251,13 @@ function InTransitModal({ tradeId, onClose }: { tradeId: string; onClose: () => 
 
   return (
     <ModalField
-      title="Mark in transit"
+      title={t('trades.markInTransit')}
       onClose={onClose}
       submitting={submitting}
-      submitLabel="Mark in transit"
+      submitLabel={t('trades.markInTransit')}
       onSubmit={submit}
     >
-      <Field label="Shipping reference" hint="Optional tracking number.">
+      <Field label={t('trades.shippingReference')} hint={t('trades.shippingRefHint')}>
         <Input value={shippingReference} onChange={(e) => setShippingReference(e.target.value)} />
       </Field>
     </ModalField>
@@ -262,6 +265,7 @@ function InTransitModal({ tradeId, onClose }: { tradeId: string; onClose: () => 
 }
 
 function CompleteModal({ tradeId, onClose }: { tradeId: string; onClose: () => void }) {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const [paymentReference, setPaymentReference] = useState('');
@@ -274,7 +278,7 @@ function CompleteModal({ tradeId, onClose }: { tradeId: string; onClose: () => v
       await tradesApi.complete(tradeId, { paymentReference: paymentReference.trim() || null });
       await qc.invalidateQueries({ queryKey: QUERY_KEY(tradeId) });
       await qc.invalidateQueries({ queryKey: ['allMyTrades'] });
-      notify('Trade completed.', 'success');
+      notify(t('trades.completed'), 'success');
       onClose();
     } catch (err) {
       notify(getMessage(err), 'error');
@@ -285,13 +289,13 @@ function CompleteModal({ tradeId, onClose }: { tradeId: string; onClose: () => v
 
   return (
     <ModalField
-      title="Complete trade"
+      title={t('trades.complete')}
       onClose={onClose}
       submitting={submitting}
       submitLabel="Complete"
       onSubmit={submit}
     >
-      <Field label="Payment reference" hint="Optional wire/transaction reference.">
+      <Field label={t('trades.paymentReference')} hint={t('trades.paymentRefHint')}>
         <Input value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} />
       </Field>
     </ModalField>
@@ -300,6 +304,7 @@ function CompleteModal({ tradeId, onClose }: { tradeId: string; onClose: () => v
 
 // ── Edit trade modal ───────────────────────────────────
 function EditTradeModal({ trade, onClose }: { trade: TradeResponse; onClose: () => void }) {
+  const { t } = useTranslation();
   const { notify } = useToast();
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -347,15 +352,15 @@ function EditTradeModal({ trade, onClose }: { trade: TradeResponse; onClose: () 
         form.buyerKind === 'external' ? form.buyerExternalName.trim() || null : null;
 
       if (form.buyerKind === 'platform' && !buyerUserId) {
-        notify('Look up the buyer by username first.', 'error');
+        notify(t('trades.buyerLookupRequired'), 'error');
         return;
       }
       if (form.buyerKind === 'client' && !buyerClientId) {
-        notify('Choose a CRM client.', 'error');
+        notify(t('trades.crmClientRequired'), 'error');
         return;
       }
       if (form.buyerKind === 'external' && !buyerExternalName) {
-        notify('Enter the external buyer name.', 'error');
+        notify(t('trades.externalBuyerRequired'), 'error');
         return;
       }
 
@@ -369,7 +374,7 @@ function EditTradeModal({ trade, onClose }: { trade: TradeResponse; onClose: () 
       await qc.invalidateQueries({ queryKey: QUERY_KEY(trade.id) });
       await qc.invalidateQueries({ queryKey: ['allMyTrades'] });
       await qc.invalidateQueries({ queryKey: ['myWatches'] });
-      notify('Trade updated.', 'success');
+      notify(t('trades.updated'), 'success');
       onClose();
     } catch (err) {
       notify(getMessage(err), 'error');
@@ -382,10 +387,10 @@ function EditTradeModal({ trade, onClose }: { trade: TradeResponse; onClose: () 
     <Modal
       open
       onClose={onClose}
-      title="Edit trade"
+      title={t('trades.editTrade')}
       footer={
         <>
-          <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
           <button type="submit" className="btn-primary" form="modal-edit-trade" disabled={submitting}>
             {submitting ? 'Saving…' : 'Save changes'}
           </button>
@@ -393,28 +398,28 @@ function EditTradeModal({ trade, onClose }: { trade: TradeResponse; onClose: () 
       }
     >
       <p className="mb-4 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:bg-brand-500/15 dark:text-brand-300">
-        If the buyer is a platform user, editing resets the trade to pending — they must confirm the new terms.
+        {t('trades.editPlatformBuyerHint')}
       </p>
       <form id="modal-edit-trade" onSubmit={submit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Sale price" required>
+          <Field label={t('trades.salePrice')} required>
             <Input type="number" step="0.01" min="0" value={form.salePrice} onChange={set('salePrice')} required />
           </Field>
-          <Field label="Sale date" required>
+          <Field label={t('trades.saleDate')} required>
             <Input type="datetime-local" value={form.saleDate} onChange={set('saleDate')} required />
           </Field>
         </div>
-        <Field label="Buyer">
+        <Field label={t('trades.buyer')}>
           <Select value={form.buyerKind} onChange={set('buyerKind')}>
-            <option value="external">External buyer (non-platform)</option>
-            <option value="platform">Platform user</option>
-            <option value="client">CRM client</option>
+            <option value="external">{t('trades.externalBuyer')}</option>
+            <option value="platform">{t('trades.platformUser')}</option>
+            <option value="client">{t('trades.crmClient')}</option>
           </Select>
         </Field>
         {form.buyerKind === 'platform' && (
-          <Field label="Buyer username" required>
+          <Field label={t('trades.buyerUsername')} required>
             <div className="flex gap-2">
-              <Input value={form.buyerUserName} onChange={set('buyerUserName')} placeholder="e.g. johndoe" />
+              <Input value={form.buyerUserName} onChange={set('buyerUserName')} placeholder={t('counterparty.placeholder')} />
               <button type="button" className="btn-secondary shrink-0" onClick={doLookup} disabled={buyerLookup.loading || !form.buyerUserName.trim()}>
                 {buyerLookup.loading ? <Spinner /> : 'Look up'}
               </button>
@@ -424,20 +429,20 @@ function EditTradeModal({ trade, onClose }: { trade: TradeResponse; onClose: () 
           </Field>
         )}
         {form.buyerKind === 'client' && (
-          <Field label="CRM client" required>
+          <Field label={t('trades.crmClient')} required>
             <Select value={form.buyerClientId} onChange={set('buyerClientId')}>
-              <option value="">Choose a client…</option>
+              <option value="">{t('trades.chooseClient')}</option>
               {clients.data?.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}{c.linkedUserName ? ` · @${c.linkedUserName}` : ' · external'}
+                  {c.name}{c.linkedUserName ? ` · @${c.linkedUserName}` : t('trades.clientExternalSuffix')}
                 </option>
               ))}
             </Select>
           </Field>
         )}
         {form.buyerKind === 'external' && (
-          <Field label="External buyer name" required>
-            <Input value={form.buyerExternalName} onChange={set('buyerExternalName')} placeholder="Local dealer" />
+          <Field label={t('trades.externalBuyerName')} required>
+            <Input value={form.buyerExternalName} onChange={set('buyerExternalName')} placeholder={t('trades.externalBuyerPlaceholder')} />
           </Field>
         )}
       </form>
@@ -461,6 +466,8 @@ function ModalField({
   onSubmit: (e: FormEvent) => void | Promise<void>;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
+
   return (
     <Modal
       open
@@ -468,9 +475,9 @@ function ModalField({
       title={title}
       footer={
         <>
-          <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
           <button type="submit" className="btn-primary" form={`modal-${title}`} disabled={submitting}>
-            {submitting ? 'Saving…' : submitLabel}
+            {submitting ? t('common.saving') : submitLabel}
           </button>
         </>
       }

@@ -9,6 +9,7 @@ import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { TradeStatusBadge } from '@/components/ui/Badge';
 import { formatDate, formatMoney } from '@/lib/format';
 import { TradeStatus } from '@/api/types';
+import { useTranslation } from '@/i18n';
 
 type Tab = 'incoming' | 'mine' | 'all';
 
@@ -19,6 +20,7 @@ const TABS: { value: Tab; label: string }[] = [
 ];
 
 export default function TradesPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('incoming');
 
   const watches = useQuery({
@@ -55,7 +57,7 @@ export default function TradesPage() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold">Trades</h1>
+        <h1 className="text-2xl font-semibold">{t('trades.title')}</h1>
         <p className="text-sm text-ink-soft">
           Confirm incoming trades and track your recorded sales.
         </p>
@@ -84,8 +86,8 @@ export default function TradesPage() {
         <PageError message={getMessage(allTrades.error)} />
       ) : trades.length === 0 ? (
         <EmptyState
-          title={tab === 'incoming' ? 'No trades pending confirmation' : 'No trades yet'}
-          hint={tab === 'incoming' ? 'When a seller records a sale to you, it appears here.' : 'Record a sale from a watch to create a trade.'}
+          title={t('trades.empty')}
+          hint={t('trades.emptyHint')}
         />
       ) : (
         <ul className="stagger card divide-y divide-surface-line">
