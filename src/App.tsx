@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { useEffect } from 'react';
 import { AuthProvider } from '@/auth/AuthContext';
 import { ToastProvider } from '@/components/Toast';
 import { Layout } from '@/components/Layout';
@@ -28,9 +27,6 @@ import ClientFormPage from '@/screens/clients/ClientFormPage';
 import ClientDetailPage from '@/screens/clients/ClientDetailPage';
 import NotFoundPage from '@/screens/NotFoundPage';
 
-// Type-only import of the virtual PWA module (provided by vite-plugin-pwa).
-import type { RegisterSWOptions } from 'vite-plugin-pwa/types';
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -41,31 +37,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Register the PWA service worker when the virtual module is available.
-function usePwa() {
-  useEffect(() => {
-    // Dynamic import so the build does not hard-fail if the plugin is absent.
-    import('virtual:pwa-register')
-      .then((mod) => {
-        const options: RegisterSWOptions = {
-          onNeedRefresh() {
-            console.info('PWA: new content available — will reload on next navigation.');
-          },
-          onOfflineReady() {
-            console.info('PWA: ready for offline use.');
-          },
-        };
-        mod.registerSW(options);
-      })
-      .catch(() => {
-        // No-op in environments without the PWA virtual module.
-      });
-  }, []);
-}
-
 export default function App() {
-  usePwa();
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

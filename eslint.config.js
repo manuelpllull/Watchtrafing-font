@@ -27,6 +27,22 @@ export default tseslint.config(
     },
   },
   {
+    // Service worker: runs in the worker global scope, not the DOM.
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: {
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
+        fetch: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        Promise: 'readonly',
+        console: 'readonly',
+      },
+    },
+  },
+  {
     // Node build script (icon generator) — browser rules don't apply.
     files: ['scripts/**/*.mjs'],
     languageOptions: {
