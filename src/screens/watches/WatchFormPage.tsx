@@ -5,8 +5,7 @@ import { brandsApi } from '@/api/brands';
 import { clientsApi } from '@/api/clients';
 import { watchesApi } from '@/api/watches';
 import { tradesApi } from '@/api/trades';
-import { usersApi } from '@/api/users';
-import { ApiError } from '@/api/client';
+import { ApiError, makeApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 import {
@@ -22,6 +21,7 @@ import { SearchCombobox, type ComboboxOption } from '@/components/SearchCombobox
 import { Condition } from '@/api/types';
 import type { ClientResponse } from '@/api/types';
 import { fromIsoDateTime, toIsoDateTime } from '@/lib/format';
+import { searchUserOptions } from '@/lib/userSearch';
 
 const CONDITION_OPTIONS = [
   { value: Condition.New, label: 'New' },
@@ -237,16 +237,16 @@ export default function WatchFormPage() {
     setError(null);
 
     if (!form.brandId) {
-      setError(makeError('Choose a brand.'));
+      setError(makeApiError('Choose a brand.'));
       return;
     }
     if (!isEdit && sellerText.trim() && !form.boughtFromUserId) {
-      setError(makeError('Look up the seller by username to confirm they exist before saving.'));
+      setError(makeApiError('Look up the seller by username to confirm they exist before saving.'));
       return;
     }
     const purchasePrice = Number(form.purchasePrice);
     if (!form.purchasePrice || Number.isNaN(purchasePrice)) {
-      setError(makeError('Purchase price is required.'));
+      setError(makeApiError('Purchase price is required.'));
       return;
     }
 
@@ -261,16 +261,16 @@ export default function WatchFormPage() {
     if (sale.recordSale) {
       const sp = Number(sale.salePrice);
       if (!sale.salePrice || Number.isNaN(sp)) {
-        setError(makeError('Sale price is required when recording a sale.'));
+        setError(makeApiError('Sale price is required when recording a sale.'));
         return;
       }
       if (!sale.saleDate) {
-        setError(makeError('Sale date is required when recording a sale.'));
+        setError(makeApiError('Sale date is required when recording a sale.'));
         return;
       }
       if (sale.buyerKind === 'platform') {
         if (!sale.buyerUserId) {
-          setError(makeError('Choose the buyer from the search results.'));
+          setError(makeApiError('Choose the buyer from the search results.'));
           return;
         }
         salePayload = {
@@ -283,7 +283,7 @@ export default function WatchFormPage() {
       } else if (sale.buyerKind === 'client') {
         const selectedClient = clients.data?.find((client) => client.id === sale.buyerClientId);
         if (!selectedClient) {
-          setError(makeError('Choose a CRM client first.'));
+          setError(makeApiError('Choose a CRM client first.'));
           return;
         }
         salePayload = {
@@ -295,7 +295,7 @@ export default function WatchFormPage() {
         };
       } else {
         if (!sale.buyerExternalName.trim()) {
-          setError(makeError('External buyer label is required.'));
+          setError(makeApiError('External buyer label is required.'));
           return;
         }
         salePayload = {
@@ -349,15 +349,15 @@ export default function WatchFormPage() {
       const down = Number(s.moneyDown || 0);
       if (s.isConsignment) {
         if (own !== 0 || down !== 0) {
-          setError(makeError('Consignment shares must have 0% ownership and 0 money down.'));
+          setError(makeApiError('Consignment shares must have 0% ownership and 0 money down.'));
           return;
         }
         if (prof < 0 || prof > 100) {
-          setError(makeError('Consignment profit % must be between 0 and 100.'));
+          setError(makeApiError('Consignment profit % must be between 0 and 100.'));
           return;
         }
       } else if (own <= 0 || own > 100 || down < 0) {
-        setError(makeError('Share ownership % must be between 0 and 100, and money down cannot be negative.'));
+        setError(makeApiError('Share ownership % must be between 0 and 100, and money down cannot be negative.'));
         return;
       }
     }
@@ -515,7 +515,7 @@ export default function WatchFormPage() {
               value={form.boughtFromUserId}
               selectedLabel={sellerText}
               disabled={submitting}
-              search={searchUsers}
+              search={searchUserOptions}
               placeholder="e.g. johndoe"
               onSelect={(id, name) => {
                 setSellerText(name);
@@ -564,7 +564,7 @@ export default function WatchFormPage() {
                     value={sale.buyerUserId}
                     selectedLabel={sale.buyerUserName}
                     disabled={submitting}
-                    search={searchUsers}
+                    search={searchUserOptions}
                     placeholder="e.g. johndoe"
                     onSelect={(id, label) =>
                       setSale((s) => ({
@@ -717,10 +717,6 @@ function ErrorList({ error }: { error: ApiError }) {
   );
 }
 
-function makeError(message: string): ApiError {
-  return new ApiError(400, { status: 400, title: message, detail: message });
-}
-
 function ClientSaleHint({ client }: { client: ClientResponse | undefined }) {
   if (!client) return null;
   return (
@@ -732,11 +728,6 @@ function ClientSaleHint({ client }: { client: ClientResponse | undefined }) {
 }
 
 // ── Co-owner draft row ─────────────────────────────────
-const searchUsers = async (term: string): Promise<ComboboxOption[]> => {
-  const list = await usersApi.search(term);
-  return list.map((u) => ({ id: u.id, label: u.userName, hint: u.displayName }));
-};
-
 function ShareDraftRow({
   share,
   onChange,
@@ -778,7 +769,7 @@ function ShareDraftRow({
                 value={share.userId}
                 selectedLabel={share.userName}
                 disabled={disabled}
-                search={searchUsers}
+                search={searchUserOptions}
                 placeholder="e.g. johndoe"
                 onSelect={(id, label) => onChange({ userId: id, userName: label })}
               />

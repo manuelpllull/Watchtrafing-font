@@ -3,8 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { watchesApi } from '@/api/watches';
 import { tradesApi } from '@/api/trades';
-import { usersApi } from '@/api/users';
-import { ApiError } from '@/api/client';
+import { ApiError, makeApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { Spinner } from '@/components/ui/Spinner';
@@ -12,6 +11,8 @@ import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { Modal } from '@/components/ui/Modal';
 import { Field, Input, Select, Textarea } from '@/components/ui/Field';
 import { TradeStatusBadge, WatchStatusBadge, ShareBadge } from '@/components/ui/Badge';
+import { SearchCombobox } from '@/components/SearchCombobox';
+import { searchUserOptions } from '@/lib/userSearch';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   conditionLabel,
@@ -351,13 +352,13 @@ function ShareModal({
   const [form, setForm] = useState({
     isExternal: false,
     userId: '',
+    userName: '',
     externalName: '',
     ownershipPercentage: '50',
     profitPercentage: '',
     moneyDown: '0',
     isConsignment: false,
   });
-  const [lookup, setLookup] = useState({ loading: false, result: null as { id: string } | null, error: '' });
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -366,19 +367,13 @@ function ShareModal({
     setForm((f) => ({ ...f, [k]: value as never }));
   };
 
-  const doLookup = async () => {
-    setLookup({ loading: true, result: null, error: '' });
-    try {
-      const p = await usersApi.lookupByUsername(form.userId.trim());
-      setLookup({ loading: false, result: { id: p.id }, error: '' });
-    } catch {
-      setLookup({ loading: false, result: null, error: 'User not found.' });
-    }
-  };
-
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!form.isExternal && !form.userId) {
+      setError(makeApiError('Choose the co-owner from the search results.'));
+      return;
+    }
     setSubmitting(true);
     try {
       const ownership = form.isConsignment ? 0 : Number(form.ownershipPercentage);
@@ -388,7 +383,7 @@ function ShareModal({
           ? Number(form.ownershipPercentage) // will be overridden below
           : ownership;
       await watchesApi.addShare(watchId, {
-        userId: form.isExternal ? null : lookup.result?.id ?? null,
+        userId: form.isExternal ? null : form.userId || null,
         externalName: form.isExternal ? form.externalName.trim() || null : null,
         ownershipPercentage: ownership,
         profitPercentage: form.isConsignment ? Number(form.profitPercentage || '0') : profit,
@@ -416,7 +411,7 @@ function ShareModal({
     >
       <form onSubmit={submit} className="space-y-4">
         <Field label="Shareholder type">
-          <Select value={form.isExternal ? 'external' : 'platform'} onChange={(e) => setForm((f) => ({ ...f, isExternal: e.target.value === 'external' }))}>
+          <Select value={form.isExternal ? 'external' : 'platform'} onChange={(e) => setForm((f) => ({ ...f, isExternal: e.target.value === 'external', userId: '', userName: '' }))}>
             <option value="platform">Platform user</option>
             <option value="external">External person</option>
           </Select>
@@ -425,15 +420,16 @@ function ShareModal({
         {form.isExternal ? (
           <Field label="External name" required><Input value={form.externalName} onChange={set('externalName')} required /></Field>
         ) : (
-          <Field label="Username" required hint="Look them up first.">
-            <div className="flex gap-2">
-              <Input value={form.userId} onChange={set('userId')} placeholder="johndoe" />
-              <button type="button" className="btn-secondary shrink-0" onClick={doLookup} disabled={lookup.loading || !form.userId.trim()}>
-                {lookup.loading ? <Spinner /> : 'Look up'}
-              </button>
-            </div>
-            {lookup.error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{lookup.error}</p>}
-            {lookup.result && <p className="mt-1 text-sm text-brand-700">Found.</p>}
+          <Field label="Co-owner" htmlFor="shareUserName" hint="Type to search. They'll be invited and must accept before a sale can be recorded.">
+            <SearchCombobox
+              id="shareUserName"
+              value={form.userId}
+              selectedLabel={form.userName}
+              search={searchUserOptions}
+              placeholder="e.g. johndoe"
+              disabled={submitting}
+              onSelect={(id, label) => setForm((f) => ({ ...f, userId: id, userName: label }))}
+            />
           </Field>
         )}
 

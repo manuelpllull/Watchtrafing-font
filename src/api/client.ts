@@ -31,6 +31,11 @@ export class ApiError extends Error {
   }
 }
 
+/** Client-side validation error, shaped like a server problem response. */
+export function makeApiError(message: string): ApiError {
+  return new ApiError(400, { status: 400, title: message, detail: message });
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
