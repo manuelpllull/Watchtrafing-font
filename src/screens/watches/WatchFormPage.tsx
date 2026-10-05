@@ -61,7 +61,6 @@ interface ShareDraft {
   kind: 'platform' | 'external';
   userId: string;
   userName: string;
-  displayName: string;
   externalName: string;
   ownershipPercentage: string;
   profitPercentage: string;
@@ -74,7 +73,6 @@ const emptyShare = (): ShareDraft => ({
   kind: 'platform',
   userId: '',
   userName: '',
-  displayName: '',
   externalName: '',
   ownershipPercentage: '',
   profitPercentage: '',
@@ -441,11 +439,6 @@ export default function WatchFormPage() {
     return list.map((b) => ({ id: b.id, label: b.name }));
   }, []);
 
-  const searchSellers = useCallback(async (term: string): Promise<ComboboxOption[]> => {
-    const list = await usersApi.search(term);
-    return list.map((u) => ({ id: u.id, label: u.userName, hint: u.displayName }));
-  }, []);
-
   const submitting = saveWatch.isPending || createTrade.isPending;
 
   return (
@@ -548,7 +541,7 @@ export default function WatchFormPage() {
               value={form.boughtFromUserId}
               selectedLabel={sellerText}
               disabled={submitting}
-              search={searchSellers}
+              search={searchUsers}
               placeholder="e.g. johndoe"
               onSelect={(id, name) => {
                 setSellerText(name);
@@ -766,6 +759,11 @@ function ClientSaleHint({ client }: { client: ClientResponse | undefined }) {
 }
 
 // ── Co-owner draft row ─────────────────────────────────
+const searchUsers = async (term: string): Promise<ComboboxOption[]> => {
+  const list = await usersApi.search(term);
+  return list.map((u) => ({ id: u.id, label: u.userName, hint: u.displayName }));
+};
+
 function ShareDraftRow({
   share,
   onChange,
@@ -777,23 +775,6 @@ function ShareDraftRow({
   onRemove: () => void;
   disabled?: boolean;
 }) {
-  const [lookup, setLookup] = useState({
-    loading: false,
-    error: '',
-  });
-
-  const doLookup = async () => {
-    setLookup({ loading: true, error: '' });
-    try {
-      const profile = await usersApi.lookupByUsername(share.userName.trim());
-      onChange({ userId: profile.id, displayName: profile.displayName });
-      setLookup({ loading: false, error: '' });
-    } catch {
-      onChange({ userId: '', displayName: '' });
-      setLookup({ loading: false, error: 'User not found.' });
-    }
-  };
-
   return (
     <div className="rounded-lg border border-surface-line bg-ink/[0.02] p-3">
       <div className="flex flex-wrap items-start gap-3">
@@ -802,7 +783,7 @@ function ShareDraftRow({
             <Select
               value={share.kind}
               onChange={(e) =>
-                onChange({ kind: e.target.value as ShareDraft['kind'], userId: '', externalName: '' })
+                onChange({ kind: e.target.value as ShareDraft['kind'], userId: '', userName: '' })
               }
               disabled={disabled}
             >
@@ -814,24 +795,20 @@ function ShareDraftRow({
 
         {share.kind === 'platform' ? (
           <div className="min-w-48 flex-[2]">
-            <Field label="Username" hint={share.displayName ? `Found: ${share.displayName}` : 'Look them up to send the invitation.'}>
-              <div className="flex gap-2">
-                <Input
-                  value={share.userName}
-                  onChange={(e) => onChange({ userName: e.target.value, userId: '' })}
-                  disabled={disabled}
-                  placeholder="e.g. johndoe"
-                />
-                <button
-                  type="button"
-                  className="btn-secondary shrink-0"
-                  onClick={doLookup}
-                  disabled={disabled || lookup.loading || !share.userName.trim()}
-                >
-                  {lookup.loading ? <Spinner /> : 'Look up'}
-                </button>
-              </div>
-              {lookup.error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{lookup.error}</p>}
+            <Field
+              label="Co-owner"
+              htmlFor={`share-user-${share.key}`}
+              hint="Type to search. They'll be invited and must accept before a sale can be recorded."
+            >
+              <SearchCombobox
+                id={`share-user-${share.key}`}
+                value={share.userId}
+                selectedLabel={share.userName}
+                disabled={disabled}
+                search={searchUsers}
+                placeholder="e.g. johndoe"
+                onSelect={(id, label) => onChange({ userId: id, userName: label })}
+              />
             </Field>
           </div>
         ) : (
