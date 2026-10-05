@@ -17,6 +17,7 @@ import {
   Checkbox,
 } from '@/components/ui/Field';
 import { Spinner } from '@/components/ui/Spinner';
+import { ShareBadge } from '@/components/ui/Badge';
 import { SearchCombobox, type ComboboxOption } from '@/components/SearchCombobox';
 import { Condition } from '@/api/types';
 import type { ClientResponse } from '@/api/types';
@@ -54,6 +55,32 @@ interface SaleState {
   buyerClientId: string;
   buyerExternalName: string;
 }
+
+interface ShareDraft {
+  key: string;
+  kind: 'platform' | 'external';
+  userId: string;
+  userName: string;
+  displayName: string;
+  externalName: string;
+  ownershipPercentage: string;
+  profitPercentage: string;
+  moneyDown: string;
+  isConsignment: boolean;
+}
+
+const emptyShare = (): ShareDraft => ({
+  key: crypto.randomUUID(),
+  kind: 'platform',
+  userId: '',
+  userName: '',
+  displayName: '',
+  externalName: '',
+  ownershipPercentage: '',
+  profitPercentage: '',
+  moneyDown: '0',
+  isConsignment: false,
+});
 
 const emptyForm: FormState = {
   brandId: '',
@@ -105,6 +132,7 @@ export default function WatchFormPage() {
   });
 
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [shares, setShares] = useState<ShareDraft[]>([]);
   const [brandName, setBrandName] = useState('');
   const [sellerText, setSellerText] = useState('');
   const [sale, setSale] = useState<SaleState>(emptySale);
@@ -177,6 +205,33 @@ export default function WatchFormPage() {
       return watchesApi.create(payload).then((r) => r.watchId);
     },
   });
+
+  const removeShare = useMutation({
+    mutationFn: ({ watchId, shareId }: { watchId: string; shareId: string }) =>
+      watchesApi.removeShare(watchId, shareId),
+    onSuccess: async () => {
+      notify('Invitation removed.', 'success');
+      await qc.invalidateQueries({ queryKey: ['watch', watchId] });
+      await qc.invalidateQueries({ queryKey: ['myWatches'] });
+      await qc.invalidateQueries({ queryKey: ['shareInvites'] });
+    },
+    onError: (err: Error) => notify(err.message, 'error'),
+  });
+
+  const onRemoveExistingShare = async (shareId: string, name: string) => {
+    const ok = await confirm({
+      title: 'Remove invitation',
+      message: `Remove the pending invitation for ${name}?`,
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    });
+    if (ok) removeShare.mutate({ watchId: watchId!, shareId });
+  };
+
+  const existingShares = useMemo(
+    () => (isEdit ? (existing.data?.shares ?? []) : []),
+    [isEdit, existing.data],
+  );
 
   const createTrade = useMutation({
     mutationFn: tradesApi.create,
@@ -288,9 +343,44 @@ export default function WatchFormPage() {
       boughtFromUserId: form.boughtFromUserId || null,
     };
 
+    // Validate share drafts up-front (they are sent after the watch is created).
+    const validShares = shares.filter((s) => {
+      if (s.kind === 'platform') return !!s.userId;
+      return !!s.externalName.trim();
+    });
+    for (const s of validShares) {
+      const own = Number(s.ownershipPercentage || 0);
+      const prof = Number(s.profitPercentage || s.ownershipPercentage || 0);
+      const down = Number(s.moneyDown || 0);
+      if (s.isConsignment) {
+        if (own !== 0 || down !== 0) {
+          setError(makeError('Consignment shares must have 0% ownership and 0 money down.'));
+          return;
+        }
+        if (prof < 0 || prof > 100) {
+          setError(makeError('Consignment profit % must be between 0 and 100.'));
+          return;
+        }
+      } else if (own <= 0 || own > 100 || down < 0) {
+        setError(makeError('Share ownership % must be between 0 and 100, and money down cannot be negative.'));
+        return;
+      }
+    }
+    const skippedSale = sale.recordSale && validShares.length > 0;
+
     try {
       const id = (await saveWatch.mutateAsync(watchPayload)) as string;
-      if (sale.recordSale && salePayload) {
+      for (const s of validShares) {
+        await watchesApi.addShare(id, {
+          userId: s.kind === 'platform' ? s.userId : null,
+          externalName: s.kind === 'external' ? s.externalName.trim() : null,
+          ownershipPercentage: s.isConsignment ? 0 : Number(s.ownershipPercentage),
+          profitPercentage: Number(s.profitPercentage || s.ownershipPercentage || 0),
+          moneyDown: s.isConsignment ? 0 : Number(s.moneyDown || 0),
+          isConsignment: s.isConsignment,
+        });
+      }
+      if (sale.recordSale && salePayload && !skippedSale) {
         await createTrade.mutateAsync({
           watchId: id,
           salePrice: salePayload.salePrice,
@@ -303,7 +393,13 @@ export default function WatchFormPage() {
       await qc.invalidateQueries({ queryKey: ['myWatches'] });
       if (isEdit) await qc.invalidateQueries({ queryKey: ['watch', watchId] });
       notify(
-        sale.recordSale ? 'Watch saved and trade recorded.' : 'Watch saved.',
+        skippedSale
+          ? 'Watch and shares saved. Record the sale once every share is accepted.'
+          : sale.recordSale
+            ? 'Watch saved and trade recorded.'
+            : validShares.length > 0
+              ? 'Watch and shares saved.'
+              : 'Watch saved.',
         'success',
       );
       navigate(`/watches/${id}`);
@@ -544,6 +640,88 @@ export default function WatchFormPage() {
           )}
         </fieldset>
 
+        <fieldset className="rounded-xl border border-surface-line p-4">
+          <legend className="px-1 text-sm font-semibold">Co-owners &amp; consignment (optional)</legend>
+          <p className="mb-3 text-xs text-ink-soft">
+            Split ownership and profit on sale. Each co-owner receives an invitation and must accept it
+            before a sale can be recorded.
+          </p>
+
+          {isEdit && existingShares.length > 0 && (
+            <ul className="mb-4 divide-y divide-surface-line rounded-lg border border-surface-line">
+              {existingShares.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {s.userName ? `@${s.userName}` : s.externalName || 'Unknown'}
+                      {s.isConsignment && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">consignment</span>}
+                    </p>
+                    <p className="text-xs text-ink-faint">
+                      Own {s.ownershipPercentage}% · Profit {s.profitPercentage}% · Money down {s.moneyDown}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <ShareBadge status={s.status} />
+                    {s.status === 'Pending' && (
+                      <button
+                        type="button"
+                        className="btn-ghost px-2 py-1 text-xs text-red-600 dark:text-red-400"
+                        onClick={() => onRemoveExistingShare(s.id, s.userName ? `@${s.userName}` : s.externalName || 'co-owner')}
+                        disabled={removeShare.isPending}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {shares.length === 0 ? (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setShares((s) => [...s, emptyShare()])}
+              disabled={submitting}
+            >
+              + Add co-owner
+            </button>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {shares.map((share, index) => (
+                  <ShareDraftRow
+                    key={share.key}
+                    share={share}
+                    onChange={(patch) =>
+                      setShares((all) =>
+                        all.map((s, i) => (i === index ? { ...s, ...patch } : s)),
+                      )
+                    }
+                    onRemove={() =>
+                      setShares((all) => all.filter((_, i) => i !== index))
+                    }
+                    disabled={submitting}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShares((s) => [...s, emptyShare()])}
+                  disabled={submitting}
+                >
+                  + Add another
+                </button>
+                <ShareTotals shares={shares} />
+              </div>
+            </>
+          )}
+        </fieldset>
+
         {error && <ErrorList error={error} />}
 
         <div className="flex justify-end gap-2 pt-2">
@@ -584,5 +762,169 @@ function ClientSaleHint({ client }: { client: ClientResponse | undefined }) {
       <span className="font-semibold">{client.name}</span>{' '}
       <span>{client.linkedUserId ? 'is linked to a platform user and will need to confirm.' : 'will complete as an external sale.'}</span>
     </div>
+  );
+}
+
+// ── Co-owner draft row ─────────────────────────────────
+function ShareDraftRow({
+  share,
+  onChange,
+  onRemove,
+  disabled,
+}: {
+  share: ShareDraft;
+  onChange: (patch: Partial<ShareDraft>) => void;
+  onRemove: () => void;
+  disabled?: boolean;
+}) {
+  const [lookup, setLookup] = useState({
+    loading: false,
+    error: '',
+  });
+
+  const doLookup = async () => {
+    setLookup({ loading: true, error: '' });
+    try {
+      const profile = await usersApi.lookupByUsername(share.userName.trim());
+      onChange({ userId: profile.id, displayName: profile.displayName });
+      setLookup({ loading: false, error: '' });
+    } catch {
+      onChange({ userId: '', displayName: '' });
+      setLookup({ loading: false, error: 'User not found.' });
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-surface-line bg-ink/[0.02] p-3">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-40 flex-1">
+          <Field label="Co-owner type">
+            <Select
+              value={share.kind}
+              onChange={(e) =>
+                onChange({ kind: e.target.value as ShareDraft['kind'], userId: '', externalName: '' })
+              }
+              disabled={disabled}
+            >
+              <option value="platform">Platform user</option>
+              <option value="external">External person</option>
+            </Select>
+          </Field>
+        </div>
+
+        {share.kind === 'platform' ? (
+          <div className="min-w-48 flex-[2]">
+            <Field label="Username" hint={share.displayName ? `Found: ${share.displayName}` : 'Look them up to send the invitation.'}>
+              <div className="flex gap-2">
+                <Input
+                  value={share.userName}
+                  onChange={(e) => onChange({ userName: e.target.value, userId: '' })}
+                  disabled={disabled}
+                  placeholder="e.g. johndoe"
+                />
+                <button
+                  type="button"
+                  className="btn-secondary shrink-0"
+                  onClick={doLookup}
+                  disabled={disabled || lookup.loading || !share.userName.trim()}
+                >
+                  {lookup.loading ? <Spinner /> : 'Look up'}
+                </button>
+              </div>
+              {lookup.error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{lookup.error}</p>}
+            </Field>
+          </div>
+        ) : (
+          <div className="min-w-48 flex-[2]">
+            <Field label="External name" required>
+              <Input
+                value={share.externalName}
+                onChange={(e) => onChange({ externalName: e.target.value })}
+                disabled={disabled}
+                placeholder="Local partner"
+              />
+            </Field>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="btn-ghost mt-6 px-2 text-red-600 dark:text-red-400"
+          onClick={onRemove}
+          disabled={disabled}
+          aria-label="Remove co-owner"
+        >
+          Remove
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-3">
+        <Field label="Ownership %">
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            value={share.ownershipPercentage}
+            onChange={(e) => onChange({ ownershipPercentage: e.target.value })}
+            disabled={disabled || share.isConsignment}
+            placeholder="50"
+          />
+        </Field>
+        <Field label="Profit %">
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            value={share.profitPercentage}
+            onChange={(e) => onChange({ profitPercentage: e.target.value })}
+            disabled={disabled}
+            placeholder="defaults to ownership"
+          />
+        </Field>
+        <Field label="Money down">
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={share.moneyDown}
+            onChange={(e) => onChange({ moneyDown: e.target.value })}
+            disabled={disabled || share.isConsignment}
+          />
+        </Field>
+      </div>
+
+      <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+        <input
+          type="checkbox"
+          checked={share.isConsignment}
+          onChange={(e) =>
+            onChange({
+              isConsignment: e.target.checked,
+              ownershipPercentage: e.target.checked ? '0' : share.ownershipPercentage,
+              moneyDown: e.target.checked ? '0' : share.moneyDown,
+            })
+          }
+          disabled={disabled}
+        />
+        Consignment (no capital stake, just a profit cut)
+      </label>
+    </div>
+  );
+}
+
+function ShareTotals({ shares }: { shares: ShareDraft[] }) {
+  const own = shares.reduce((sum, s) => sum + Number(s.ownershipPercentage || 0), 0);
+  const prof = shares.reduce(
+    (sum, s) => sum + Number(s.profitPercentage || s.ownershipPercentage || 0),
+    0,
+  );
+  const ok = Math.abs(own - 100) < 0.01 && Math.abs(prof - 100) < 0.01;
+  return (
+    <p className="text-xs text-ink-soft">
+      Totals — ownership: {own.toFixed(2)}% · profit: {prof.toFixed(2)}%
+      {!ok && <span className="ml-1 text-amber-700 dark:text-amber-400">(accepted shares must total 100% each before a sale)</span>}
+    </p>
   );
 }

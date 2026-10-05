@@ -81,15 +81,23 @@ export default function DashboardPage() {
           <ul className="stagger card divide-y divide-surface-line">
             {pendingTrades.map((t) => (
               <li key={t.id}>
-                <Link to={`/trades/${t.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-ink/10">
-                  <span className="flex items-center gap-3 text-sm font-medium">
-                    <span className="avatar h-8 w-8 shrink-0 bg-ink/10 text-ink-soft">
-                      <Activity size={15} />
-                    </span>
-                    {t.buyerUserName || (t.buyerClientId ? `CRM client · ${t.buyerExternalName || 'client'}` : null) || t.buyerExternalName || 'External buyer'}
-                    <span className="text-ink-faint"> · {formatDate(t.saleDate)}</span>
+                <Link
+                  to={`/trades/${t.id}`}
+                  className="flex items-center gap-3 px-3 py-3 transition hover:bg-ink/10 sm:px-4"
+                >
+                  <span className="avatar h-8 w-8 shrink-0 bg-ink/10 text-ink-soft">
+                    <Activity size={15} />
                   </span>
-                  <span className="text-sm font-semibold">{formatMoney(t.salePrice)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">
+                      {t.buyerUserName ||
+                        (t.buyerClientId ? `CRM client · ${t.buyerExternalName || 'client'}` : null) ||
+                        t.buyerExternalName ||
+                        'External buyer'}
+                    </span>
+                    <span className="block text-xs text-ink-faint">{formatDate(t.saleDate)}</span>
+                  </span>
+                  <span className="shrink-0 text-sm font-semibold">{formatMoney(t.salePrice)}</span>
                 </Link>
               </li>
             ))}
@@ -110,21 +118,24 @@ export default function DashboardPage() {
             <ul className="stagger card divide-y divide-surface-line">
               {myWatches.slice(0, 5).map((w) => (
                 <li key={w.id}>
-                  <Link to={`/watches/${w.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-ink/10">
-                    <span className="flex min-w-0 items-center gap-3">
-                      <Watch size={26} strokeWidth={1.4} className="shrink-0 text-ink" />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">
-                          {w.brand.name} {w.model}
-                        </span>
-                        <span className="block text-xs text-ink-faint">{w.referenceNumber || '—'}</span>
-                      </span>
+<Link
+                  to={`/watches/${w.id}`}
+                  className="flex items-center gap-3 px-3 py-3 transition hover:bg-ink/10 sm:justify-between sm:px-4"
+                >
+                  <Watch size={22} strokeWidth={1.4} className="shrink-0 text-ink sm:hidden" />
+                  <span className="min-w-0 flex-1 sm:flex-none">
+                    <span className="block truncate text-sm font-medium">
+                      {w.brand.name} {w.model}
                     </span>
-                    <span className="flex shrink-0 items-center gap-3">
-                      <span className="text-sm text-ink-soft">{formatMoney(w.purchasePrice)}</span>
-                      <WatchStatusBadge status={w.status} />
+                    <span className="block truncate text-xs text-ink-faint">
+                      {w.referenceNumber || '—'} · {formatMoney(w.purchasePrice)}
                     </span>
-                  </Link>
+                  </span>
+                  <span className="hidden shrink-0 text-sm text-ink-soft sm:block">
+                    {formatMoney(w.purchasePrice)}
+                  </span>
+                  <WatchStatusBadge status={w.status} />
+                </Link>
                 </li>
               ))}
             </ul>
@@ -142,13 +153,13 @@ export default function DashboardPage() {
           ) : (
             <ul className="stagger card divide-y divide-surface-line">
               {activity.data!.slice(0, 6).map((a) => (
-                <li key={a.id} className="flex items-center gap-3 px-4 py-3">
-                  <Watch size={26} strokeWidth={1.4} className="shrink-0 text-brand-500" />
+                <li key={a.id} className="flex items-center gap-3 px-3 py-3 sm:px-4">
+                  <Watch size={22} strokeWidth={1.4} className="shrink-0 text-brand-500 sm:hidden" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{a.description}</p>
+                    <p className="line-clamp-2 text-sm font-medium leading-snug">{a.description}</p>
                     <p className="text-xs text-ink-faint">{formatDate(a.createdAt)}</p>
                   </div>
-                  <span className="avatar h-8 w-8 shrink-0 text-sm">
+                  <span className="avatar hidden h-8 w-8 shrink-0 text-sm sm:flex">
                     {a.activityType.charAt(0)}
                   </span>
                 </li>

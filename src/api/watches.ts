@@ -25,6 +25,8 @@ export const watchesApi = {
     apiDelete<void>(`watches/${watchId}/expenses/${expenseId}`),
   addShare: (watchId: string, body: AddShareRequest) =>
     apiPost<{ shareId: string }>(`watches/${watchId}/shares`, body),
+  removeShare: (watchId: string, shareId: string) =>
+    apiDelete<void>(`watches/${watchId}/shares/${shareId}`),
   getShares: (watchId: string) =>
     apiGet<WatchShareResponse[]>(`watches/${watchId}/shares`),
   acceptShare: (shareId: string) =>
