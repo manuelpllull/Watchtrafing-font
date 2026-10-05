@@ -1,0 +1,120 @@
+import { Link } from 'react-router-dom';
+import type { MyShareInvitation } from '@/api/types';
+import { useShareInvitations } from '@/components/useShareInvitations';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageError, getMessage } from '@/components/ui/ErrorBanner';
+import { Spinner } from '@/components/ui/Spinner';
+import { ShareBadge } from '@/components/ui/Badge';
+import { formatMoney, formatPercent, formatDate } from '@/lib/format';
+
+function InvitationTerms({ invitation }: { invitation: MyShareInvitation }) {
+  return (
+    <p className="mt-1 text-xs text-ink-faint">
+      {invitation.isConsignment
+        ? `Consignment · ${formatPercent(invitation.profitPercentage)}% profit`
+        : `${formatPercent(invitation.ownershipPercentage)}% ownership · ${formatPercent(
+            invitation.profitPercentage,
+          )}% profit · ${formatMoney(invitation.moneyDown)} down`}
+    </p>
+  );
+}
+
+/**
+ * The list of invitations. `showHistory` adds already-accepted/declined rows,
+ * which the dashboard does not need.
+ */
+export function ShareInvitationsList({ showHistory = false }: { showHistory?: boolean }) {
+  const { pending, resolved, resolve, isLoading, error } = useShareInvitations();
+
+  if (isLoading) {
+    return (
+      <div className="card flex items-center gap-2 p-4 text-sm text-ink-soft">
+        <Spinner /> Loading…
+      </div>
+    );
+  }
+
+  if (error) {
+    return <PageError message={getMessage(error)} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      {pending.length === 0 ? (
+        <EmptyState
+          title="No pending invitations"
+          hint="When someone invites you as a co-owner or consignee, it shows up here."
+        />
+      ) : (
+        <ul className="card divide-y divide-surface-line">
+          {pending.map((invitation) => (
+            <li key={invitation.id} className="p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    <span className="font-semibold">@{invitation.inviterUserName}</span> invited you to
+                    co-own{' '}
+                    <Link
+                      to={`/watches/${invitation.watchId}`}
+                      className="font-semibold text-brand-700 hover:underline dark:text-brand-300"
+                    >
+                      {invitation.watchLabel}
+                    </Link>
+                  </p>
+                  <InvitationTerms invitation={invitation} />
+                  <p className="mt-1 text-xs text-ink-faint">
+                    Invited {formatDate(invitation.createdAt)}
+                    {invitation.referenceNumber ? ` · Ref ${invitation.referenceNumber}` : ''}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => resolve.mutate({ id: invitation.id, accept: false })}
+                    disabled={resolve.isPending}
+                  >
+                    Decline
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => resolve.mutate({ id: invitation.id, accept: true })}
+                    disabled={resolve.isPending}
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {showHistory && resolved.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-semibold">Resolved</h2>
+          <ul className="card divide-y divide-surface-line">
+            {resolved.map((invitation) => (
+              <li
+                key={invitation.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    <Link to={`/watches/${invitation.watchId}`} className="hover:underline">
+                      {invitation.watchLabel}
+                    </Link>
+                    <span className="text-ink-faint"> · @{invitation.inviterUserName}</span>
+                  </p>
+                  <InvitationTerms invitation={invitation} />
+                </div>
+                <ShareBadge status={invitation.status} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}

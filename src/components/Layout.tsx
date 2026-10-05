@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Cog, Moon, Plus, Sun } from 'lucide-react';
 import { usersApi } from '@/api/users';
 import { useAuth } from '@/auth/AuthContext';
+import { useShareInvitations } from '@/components/useShareInvitations';
 import { AccountMenu } from '@/components/AccountMenu';
 import { useToast } from '@/components/Toast';
 import { classNames } from '@/lib/format';
@@ -12,10 +13,13 @@ interface NavItem {
   to: string;
   label: string;
   adminOnly?: boolean;
+  /** Shows a count of pending share invitations next to the label. */
+  badge?: number;
 }
 
 const NAV: NavItem[] = [
   { to: '/watches', label: 'Collection' },
+  { to: '/invitations', label: 'Invitations' },
   { to: '/trades', label: 'Trades' },
   { to: '/lookup', label: 'Counterparties' },
   { to: '/clients', label: 'Clients' },
@@ -31,7 +35,12 @@ export function Layout() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 
-  const items = NAV.filter((i) => !i.adminOnly || session?.role === 'Admin');
+  // One query backs the badge, the dashboard card and the invitations page.
+  const { pending } = useShareInvitations();
+
+  const items = NAV.filter((i) => !i.adminOnly || session?.role === 'Admin').map((i) =>
+    i.to === '/invitations' ? { ...i, badge: pending.length } : i,
+  );
 
   const onLogout = () => {
     logout();
@@ -66,6 +75,11 @@ export function Layout() {
                 }
               >
                 {i.label}
+                {i.badge ? (
+                  <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                    {i.badge}
+                  </span>
+                ) : null}
               </NavLink>
             ))}
           </nav>
@@ -125,7 +139,14 @@ export function Layout() {
                     )
                   }
                 >
-                  {i.label}
+                  <span className="flex items-center justify-between gap-2">
+                    {i.label}
+                    {i.badge ? (
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 py-0.5 text-xs font-semibold text-white">
+                        {i.badge}
+                      </span>
+                    ) : null}
+                  </span>
                 </NavLink>
               ))}
               <button

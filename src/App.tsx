@@ -15,6 +15,7 @@ import DashboardPage from '@/screens/DashboardPage';
 import WatchesPage from '@/screens/watches/WatchesPage';
 import WatchFormPage from '@/screens/watches/WatchFormPage';
 import WatchDetailPage from '@/screens/watches/WatchDetailPage';
+import ShareInvitationsPage from '@/screens/watches/ShareInvitationsPage';
 import TradesPage from '@/screens/trades/TradesPage';
 import TradeDetailPage from '@/screens/trades/TradeDetailPage';
 import CounterpartyLookupPage from '@/screens/counterparty/CounterpartyLookupPage';
@@ -61,6 +62,7 @@ export default function App() {
                   <Route path="/watches/new" element={<WatchFormPage />} />
                   <Route path="/watches/:watchId" element={<WatchDetailPage />} />
                   <Route path="/watches/:watchId/edit" element={<WatchFormPage />} />
+                  <Route path="/invitations" element={<ShareInvitationsPage />} />
                   <Route path="/trades" element={<TradesPage />} />
                   <Route path="/trades/:tradeId" element={<TradeDetailPage />} />
                   <Route path="/lookup" element={<CounterpartyLookupPage />} />
