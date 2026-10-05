@@ -51,6 +51,7 @@ interface SaleState {
   salePrice: string;
   saleDate: string;
   buyerKind: 'external' | 'platform' | 'client';
+  buyerUserId: string;
   buyerUserName: string;
   buyerClientId: string;
   buyerExternalName: string;
@@ -100,6 +101,7 @@ const emptySale: SaleState = {
   salePrice: '',
   saleDate: fromIsoDateTime(new Date().toISOString()),
   buyerKind: 'external',
+  buyerUserId: '',
   buyerUserName: '',
   buyerClientId: '',
   buyerExternalName: '',
@@ -135,11 +137,6 @@ export default function WatchFormPage() {
   const [sellerText, setSellerText] = useState('');
   const [sale, setSale] = useState<SaleState>(emptySale);
   const [error, setError] = useState<ApiError | null>(null);
-  const [buyerLookup, setBuyerLookup] = useState({
-    loading: false,
-    result: null as { id: string; userName: string; displayName: string } | null,
-    error: '' as string,
-  });
 
   // Hydrate the form when editing.
   useEffect(() => {
@@ -272,14 +269,14 @@ export default function WatchFormPage() {
         return;
       }
       if (sale.buyerKind === 'platform') {
-        if (!buyerLookup.result) {
-          setError(makeError('Look up the buyer by username first.'));
+        if (!sale.buyerUserId) {
+          setError(makeError('Choose the buyer from the search results.'));
           return;
         }
         salePayload = {
           salePrice: sp,
           saleDate: toIsoDateTime(sale.saleDate),
-          buyerUserId: buyerLookup.result.id,
+          buyerUserId: sale.buyerUserId,
           buyerClientId: null,
           buyerExternalName: null,
         };
@@ -403,29 +400,6 @@ export default function WatchFormPage() {
       navigate(`/watches/${id}`);
     } catch (err) {
       setError(err as ApiError);
-    }
-  };
-
-  const lookupBuyer = async () => {
-    setBuyerLookup({ loading: true, result: null, error: '' });
-    try {
-      const profile = await usersApi.lookupByUsername(sale.buyerUserName.trim());
-      setBuyerLookup({
-        loading: false,
-        result: {
-          id: profile.id,
-          userName: profile.userName,
-          displayName: profile.displayName,
-        },
-        error: '',
-      });
-      setSale((s) => ({ ...s, buyerExternalName: '' }));
-    } catch (err) {
-      setBuyerLookup({
-        loading: false,
-        result: null,
-        error: err instanceof Error ? err.message : 'User not found.',
-      });
     }
   };
 
@@ -580,29 +554,28 @@ export default function WatchFormPage() {
               </Field>
 
               {sale.buyerKind === 'platform' ? (
-                <div className="space-y-2">
-                  <Field label="Buyer username" htmlFor="buyerUserName" hint="Look them up to verify reputation before dealing.">
-                    <div className="flex gap-2">
-                      <Input
-                        id="buyerUserName"
-                        value={sale.buyerUserName}
-                        onChange={setSaleField('buyerUserName')}
-                        disabled={submitting}
-                        placeholder="e.g. johndoe"
-                      />
-                      <button type="button" className="btn-secondary shrink-0" onClick={lookupBuyer} disabled={submitting || !sale.buyerUserName.trim() || buyerLookup.loading}>
-                        {buyerLookup.loading ? <Spinner /> : 'Look up'}
-                      </button>
-                    </div>
-                  </Field>
-                  {buyerLookup.error && <p className="text-sm text-red-600 dark:text-red-400">{buyerLookup.error}</p>}
-                  {buyerLookup.result && (
-                    <div className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800 dark:bg-brand-500/15 dark:text-brand-300">
-                      <span className="font-semibold">{buyerLookup.result.displayName}</span>{' '}
-                      <span>(@{buyerLookup.result.userName}) · will need to confirm</span>
-                    </div>
-                  )}
-                </div>
+                <Field
+                  label="Buyer"
+                  htmlFor="buyerUserName"
+                  hint="Type to search. Platform buyers must confirm the trade before it counts as a sale."
+                >
+                  <SearchCombobox
+                    id="buyerUserName"
+                    value={sale.buyerUserId}
+                    selectedLabel={sale.buyerUserName}
+                    disabled={submitting}
+                    search={searchUsers}
+                    placeholder="e.g. johndoe"
+                    onSelect={(id, label) =>
+                      setSale((s) => ({
+                        ...s,
+                        buyerUserId: id,
+                        buyerUserName: label,
+                        buyerExternalName: '',
+                      }))
+                    }
+                  />
+                </Field>
               ) : sale.buyerKind === 'client' ? (
                 <div className="space-y-2">
                   <Field label="CRM client" htmlFor="buyerClientId" hint="The client is private to your CRM. Linked clients require platform confirmation.">
