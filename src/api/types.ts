@@ -207,8 +207,24 @@ export interface WatchShareResponse {
   createdAt: string;
 }
 
+export interface MyShareInvitation {
+  id: string;
+  watchId: string;
+  watchLabel: string;
+  referenceNumber: string | null;
+  inviterUserName: string;
+  ownershipPercentage: number;
+  profitPercentage: number;
+  moneyDown: number;
+  isConsignment: boolean;
+  status: ShareStatus;
+  createdAt: string;
+}
+
 export interface WatchResponse {
   id: string;
+  ownerUserId: string;
+  ownerUserName: string | null;
   brand: Brand;
   additionalExpenses: AdditionalExpense[];
   shares: WatchShareResponse[];

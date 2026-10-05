@@ -6,6 +6,7 @@ import { tradesApi } from '@/api/trades';
 import { ApiError, makeApiError } from '@/api/client';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { useAuth } from '@/auth/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { Modal } from '@/components/ui/Modal';
@@ -29,6 +30,7 @@ export default function WatchDetailPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { confirm, dialog } = useConfirm();
+  const { session } = useAuth();
 
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<AdditionalExpense | null>(null);
@@ -64,6 +66,18 @@ export default function WatchDetailPage() {
     },
   });
 
+  const resolveShare = useMutation({
+    mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
+      accept ? watchesApi.acceptShare(id) : watchesApi.rejectShare(id),
+    onSuccess: async (_data, { accept }) => {
+      notify(accept ? 'Share accepted.' : 'Invitation declined.', 'success');
+      await qc.invalidateQueries({ queryKey: ['watch', watchId] });
+      await qc.invalidateQueries({ queryKey: ['myWatches'] });
+      await qc.invalidateQueries({ queryKey: ['shareInvites'] });
+    },
+    onError: (err: Error) => notify(getMessage(err), 'error'),
+  });
+
   const onDeleteExpense = async (expenseId: string, title: string) => {
     const ok = await confirm({
       title: 'Delete expense?',
@@ -95,12 +109,55 @@ export default function WatchDetailPage() {
   if (!watch.data) return null;
   const w = watch.data;
 
+  // Co-owners can view the watch but must not use owner-only controls.
+  const isOwner = !session || session.userId === w.ownerUserId;
+  const myShare = w.shares?.find((s) => s.userId === session?.userId);
+  const myPendingShare = myShare?.status === 'Pending' ? myShare : undefined;
+
   return (
     <div className="space-y-5">
       <nav className="text-sm text-ink-soft">
         <Link to="/watches" className="hover:underline">Collection</Link> /{' '}
         <span className="text-ink">{w.brand.name} {w.model}</span>
       </nav>
+
+      {!isOwner && (
+        <div className="card p-4 text-sm text-ink-soft">
+          Owned by <span className="font-semibold text-ink">@{w.ownerUserName ?? 'unknown'}</span>
+          {myShare ? ` · you hold ${formatPercent(myShare.ownershipPercentage)}%` : ''}
+        </div>
+      )}
+
+      {myPendingShare && (
+        <div className="card border-amber-300 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
+          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            You're invited to co-own this watch
+          </p>
+          <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+            {myPendingShare.isConsignment
+              ? `Consignment · ${formatPercent(myPendingShare.profitPercentage)}% profit`
+              : `${formatPercent(myPendingShare.ownershipPercentage)}% ownership · ${formatPercent(myPendingShare.profitPercentage)}% profit · ${formatMoney(myPendingShare.moneyDown)} money down`}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => resolveShare.mutate({ id: myPendingShare.id, accept: false })}
+              disabled={resolveShare.isPending}
+            >
+              Decline
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => resolveShare.mutate({ id: myPendingShare.id, accept: true })}
+              disabled={resolveShare.isPending}
+            >
+              Accept share
+            </button>
+          </div>
+        </div>
+      )}
 
       <header className="card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -112,10 +169,14 @@ export default function WatchDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             <WatchStatusBadge status={w.status} />
-            <Link to={`/watches/${w.id}/edit`} className="btn-secondary">Edit</Link>
-            <button type="button" className="btn-ghost text-red-600 dark:text-red-400" onClick={onDelete} disabled={remove.isPending}>
-              {remove.isPending ? 'Deleting…' : 'Delete'}
-            </button>
+            {isOwner && (
+              <>
+                <Link to={`/watches/${w.id}/edit`} className="btn-secondary">Edit</Link>
+                <button type="button" className="btn-ghost text-red-600 dark:text-red-400" onClick={onDelete} disabled={remove.isPending}>
+                  {remove.isPending ? 'Deleting…' : 'Delete'}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -171,7 +232,9 @@ export default function WatchDetailPage() {
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Shares {w.isManaged && <span className="text-xs font-normal text-ink-faint">(managed)</span>}</h2>
-          <button type="button" className="btn-secondary" onClick={() => setShareOpen(true)}>+ Add share</button>
+          {isOwner && (
+            <button type="button" className="btn-secondary" onClick={() => setShareOpen(true)}>+ Add share</button>
+          )}
         </div>
         {(w.shares?.length ?? 0) === 0 ? (
           <EmptyState title="No shares" hint="Add co-owners or a consignee to split profits on sale." />

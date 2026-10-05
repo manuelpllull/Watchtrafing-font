@@ -1,14 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Activity, Coins, Plus, TrendingUp, Watch } from 'lucide-react';
 import { watchesApi } from '@/api/watches';
 import { tradesApi } from '@/api/trades';
 import { activityApi } from '@/api/activity';
 import { useAuth } from '@/auth/AuthContext';
+import { useToast } from '@/components/Toast';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
-import { formatMoney, formatDate } from '@/lib/format';
+import { formatMoney, formatDate, formatPercent } from '@/lib/format';
 import { WatchStatusBadge } from '@/components/ui/Badge';
 import { TradeStatus, WatchStatus } from '@/api/types';
 
@@ -68,6 +69,8 @@ export default function DashboardPage() {
         <StatCard label="Collection value" value={formatMoney(collectionValue)} loading={watches.isLoading} icon={TrendingUp} />
         <StatCard label="Recorded sales profit" value={formatMoney(soldProfit)} loading={watches.isLoading} icon={Coins} />
       </div>
+
+      <ShareInvitationsCard />
 
       <section>
         <SectionHeader title="Pending trades" to="/trades" linkLabel="View all" />
@@ -169,6 +172,86 @@ export default function DashboardPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function ShareInvitationsCard() {
+  const { notify } = useToast();
+  const qc = useQueryClient();
+
+  const invitations = useQuery({
+    queryKey: ['shareInvites'],
+    queryFn: () => watchesApi.myInvitations(),
+  });
+
+  const resolve = useMutation({
+    mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
+      accept ? watchesApi.acceptShare(id) : watchesApi.rejectShare(id),
+    onSuccess: async (_data, { accept }) => {
+      notify(accept ? 'Share accepted.' : 'Invitation declined.', 'success');
+      await qc.invalidateQueries({ queryKey: ['shareInvites'] });
+      await qc.invalidateQueries({ queryKey: ['myWatches'] });
+      await qc.invalidateQueries({ queryKey: ['watch'] });
+    },
+    onError: (err: Error) => notify(err.message, 'error'),
+  });
+
+  const pending = (invitations.data ?? []).filter((i) => i.status === 'Pending');
+
+  // Nothing to action: keep the dashboard clean.
+  if (!invitations.isLoading && pending.length === 0) return null;
+
+  return (
+    <section>
+      <SectionHeader title="Share invitations" />
+      {invitations.isLoading ? (
+        <div className="card flex items-center gap-2 p-4 text-sm text-ink-soft">
+          <Spinner /> Loading…
+        </div>
+      ) : invitations.error ? (
+        <PageError message={getMessage(invitations.error)} />
+      ) : (
+        <ul className="card divide-y divide-surface-line">
+          {pending.map((inv) => (
+            <li key={inv.id} className="p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    <span className="font-semibold">@{inv.inviterUserName}</span> invited you to co-own{' '}
+                    <Link to={`/watches/${inv.watchId}`} className="font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                      {inv.watchLabel}
+                    </Link>
+                  </p>
+                  <p className="mt-1 text-xs text-ink-faint">
+                    {inv.isConsignment
+                      ? `Consignment · ${formatPercent(inv.profitPercentage)}% profit`
+                      : `${formatPercent(inv.ownershipPercentage)}% ownership · ${formatPercent(inv.profitPercentage)}% profit · ${formatMoney(inv.moneyDown)} down`}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => resolve.mutate({ id: inv.id, accept: false })}
+                    disabled={resolve.isPending}
+                  >
+                    Decline
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => resolve.mutate({ id: inv.id, accept: true })}
+                    disabled={resolve.isPending}
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

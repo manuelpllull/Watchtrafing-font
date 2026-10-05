@@ -7,6 +7,7 @@ import type {
   WatchResponse,
   WatchesByUserIdResponse,
   WatchShareResponse,
+  MyShareInvitation,
 } from './types';
 
 export const watchesApi = {
@@ -33,4 +34,5 @@ export const watchesApi = {
     apiPost<void>(`watches/shares/${shareId}/accept`),
   rejectShare: (shareId: string) =>
     apiPost<void>(`watches/shares/${shareId}/reject`),
+  myInvitations: () => apiGet<MyShareInvitation[]>('shares/invitations'),
 };

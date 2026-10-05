@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LogOut, UserRound } from 'lucide-react';
+import { NotificationToggle } from '@/components/NotificationToggle';
 
 export function AccountMenu({
   email,
@@ -62,6 +63,7 @@ export function AccountMenu({
             <UserRound size={15} className="text-ink-faint" />
             Profile
           </Link>
+          <NotificationToggle onDone={() => setOpen(false)} />
           <button
             type="button"
             role="menuitem"
