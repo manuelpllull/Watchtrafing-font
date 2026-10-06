@@ -61,6 +61,20 @@ export const ca: Catalog = {
   'nav.viewCollection': 'Veure la col·lecció',
   'nav.viewAll': 'Veure-ho tot',
 
+  'activity.watch.created': "S'ha creat el rellotge «{watch}».",
+  'activity.watch.updated': "S'ha actualitzat el rellotge «{watch}».",
+  'activity.watch.deleted': "S'ha eliminat el rellotge «{watch}».",
+  'activity.watch.archived': "S'ha arxivat el rellotge «{watch}».",
+  'activity.client.created': "S'ha afegit el client «{client}» al teu CRM.",
+  'activity.client.updated': "S'ha actualitzat el client «{client}».",
+  'activity.client.deleted': "S'ha eliminat el client «{client}» del teu CRM.",
+  'activity.trade.created': "S'ha registrat la venda de «{watch}» a {buyer}.",
+  'activity.trade.completed': "S'ha completat la venda de «{watch}» a {buyer}.",
+  'activity.trade.updated': "S'ha actualitzat l'operació de «{watch}».",
+  'activity.trade.cancelled': "S'ha cancel·lat la venda de «{watch}».",
+  'activity.trade.rejected': "El comprador ha rebutjat la venda de «{watch}».",
+  'activity.trade.inTransit': "L'enviament de «{watch}» s'ha marcat en trànsit.",
+
   // ── Dashboard ──────────────────────────────────────────
   'dashboard.welcome': 'Benvingut de nou',
   'dashboard.watches': 'Rellotges',

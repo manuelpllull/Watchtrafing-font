@@ -6,6 +6,7 @@ import { tradesApi } from '@/api/trades';
 import { activityApi } from '@/api/activity';
 import { useAuth } from '@/auth/AuthContext';
 import { ShareInvitationsList } from '@/components/ShareInvitations';
+import { useActivityText } from '@/lib/activityText';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
@@ -16,6 +17,7 @@ import { useTranslation } from '@/i18n';
 
 export default function DashboardPage() {
   const { t } = useTranslation();
+  const activityText = useActivityText();
   const { session } = useAuth();
 
   const watches = useQuery({
@@ -164,7 +166,7 @@ export default function DashboardPage() {
                 <li key={a.id} className="flex items-center gap-3 px-3 py-3 sm:px-4">
                   <Watch size={22} strokeWidth={1.4} className="shrink-0 text-brand-500 sm:hidden" />
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-medium leading-snug">{a.description}</p>
+                    <p className="line-clamp-2 text-sm font-medium leading-snug">{activityText(a)}</p>
                     <p className="text-xs text-ink-faint">{formatDate(a.createdAt)}</p>
                   </div>
                   <span className="avatar hidden h-8 w-8 shrink-0 text-sm sm:flex">

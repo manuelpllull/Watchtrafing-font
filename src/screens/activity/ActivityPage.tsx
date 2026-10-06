@@ -7,10 +7,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { formatDateTime } from '@/lib/format';
+import { useActivityText } from '@/lib/activityText';
 import { useTranslation } from '@/i18n';
 
 export default function ActivityPage() {
   const { t } = useTranslation();
+  const activityText = useActivityText();
   const { session } = useAuth();
   const isAdmin = session?.role === 'Admin';
   const [global, setGlobal] = useState(false);
@@ -71,7 +73,7 @@ export default function ActivityPage() {
               <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500" aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <p className="text-sm font-medium">{item.description}</p>
+                  <p className="text-sm font-medium">{activityText(item)}</p>
                   <time className="text-xs text-ink-faint">{formatDateTime(item.createdAt)}</time>
                 </div>
                 <p className="mt-1 text-xs text-ink-soft">

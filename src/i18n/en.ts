@@ -64,6 +64,20 @@ export const en = {
   'nav.viewCollection': 'View collection',
   'nav.viewAll': 'View all',
 
+  'activity.watch.created': "Watch '{watch}' was created.",
+  'activity.watch.updated': "Watch '{watch}' was updated.",
+  'activity.watch.deleted': "Watch '{watch}' was deleted.",
+  'activity.watch.archived': "Watch '{watch}' was archived.",
+  'activity.client.created': "Client '{client}' was added to your CRM.",
+  'activity.client.updated': "Client '{client}' was updated.",
+  'activity.client.deleted': "Client '{client}' was removed from your CRM.",
+  'activity.trade.created': "Sale of '{watch}' to {buyer} was recorded.",
+  'activity.trade.completed': "Sale of '{watch}' to {buyer} was completed.",
+  'activity.trade.updated': "Trade for '{watch}' was updated.",
+  'activity.trade.cancelled': "Sale of '{watch}' was cancelled.",
+  'activity.trade.rejected': "Sale of '{watch}' was rejected by the buyer.",
+  'activity.trade.inTransit': "Shipment of '{watch}' was marked as in transit.",
+
   // ── Dashboard ──────────────────────────────────────────
   'dashboard.welcome': 'Welcome back',
   'dashboard.watches': 'Watches',

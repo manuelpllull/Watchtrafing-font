@@ -61,6 +61,20 @@ export const es: Catalog = {
   'nav.viewCollection': 'Ver colección',
   'nav.viewAll': 'Ver todo',
 
+  'activity.watch.created': "Se creó el reloj «{watch}».",
+  'activity.watch.updated': "Se actualizó el reloj «{watch}».",
+  'activity.watch.deleted': "Se eliminó el reloj «{watch}».",
+  'activity.watch.archived': "Se archivó el reloj «{watch}».",
+  'activity.client.created': "Se añadió el cliente «{client}» a tu CRM.",
+  'activity.client.updated': "Se actualizó el cliente «{client}».",
+  'activity.client.deleted': "Se eliminó el cliente «{client}» de tu CRM.",
+  'activity.trade.created': "Se registró la venta de «{watch}» a {buyer}.",
+  'activity.trade.completed': "Se completó la venta de «{watch}» a {buyer}.",
+  'activity.trade.updated': "Se actualizó la operación de «{watch}».",
+  'activity.trade.cancelled': "Se canceló la venta de «{watch}».",
+  'activity.trade.rejected': "El comprador rechazó la venta de «{watch}».",
+  'activity.trade.inTransit': "El envío de «{watch}» se marcó en tránsito.",
+
   // ── Dashboard ──────────────────────────────────────────
   'dashboard.welcome': 'Bienvenido de nuevo',
   'dashboard.watches': 'Relojes',

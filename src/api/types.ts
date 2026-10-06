@@ -365,7 +365,12 @@ export interface ActivityResponse {
   userId: string;
   activityType: string;
   entityId: string | null;
+  /** English sentence, for clients that do not translate. */
   description: string;
+  /** Message key (e.g. "trade.created"); null for legacy rows. */
+  key: string | null;
+  /** Values for the key's placeholders (watch, buyer, client). */
+  args: Record<string, string>;
   createdAt: string;
 }
 
