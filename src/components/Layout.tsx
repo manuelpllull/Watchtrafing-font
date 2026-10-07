@@ -157,6 +157,8 @@ export function Layout() {
                   </span>
                 </NavLink>
               ))}
+              <div className="my-1 border-t border-surface-line" />
+              <LanguageSwitcher variant="full" />
               <button
                 type="button"
                 className="block w-full rounded-lg px-3 py-2.5 text-left font-display text-[15px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:bg-red-500/10"
