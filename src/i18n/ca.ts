@@ -204,6 +204,7 @@ export const ca: Catalog = {
     'Es crearà una operació pendent. El comprador l\'ha de confirmar o rebutjar abans que es completi.',
 
   'watch.moneyDownHint': 'La teva part del preu més les despeses que vas pagar.',
+  'watch.saleBlockedByPendingInvites': 'No es pot registrar una venda mentre una invitació de copropietari estigui pendent.',
   // ── Watch detail ───────────────────────────────────────
   'watchDetail.noReference': 'Sense referència',
   'watchDetail.deleting': 'Eliminant…',

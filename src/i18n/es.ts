@@ -204,6 +204,7 @@ export const es: Catalog = {
 'watch.recordSaleConfirm': 'Registrar la venta',
 
   'watch.moneyDownHint': 'Tu parte del precio más los gastos que pagaste.',
+  'watch.saleBlockedByPendingInvites': 'No se puede registrar una venta mientras una invitación de copropietario esté pendiente.',
   // ── Watch detail ───────────────────────────────────────
   'watchDetail.noReference': 'Sin referencia',
   'watchDetail.deleting': 'Eliminando…',

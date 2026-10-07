@@ -207,6 +207,7 @@ export const en = {
   'watch.recordSaleConfirm': 'Record sale',
 
   'watch.moneyDownHint': 'Your share of the price plus expenses you paid.',
+  'watch.saleBlockedByPendingInvites': 'A sale cannot be recorded while a co-owner invitation is still pending.',
   // ── Watch detail ───────────────────────────────────────
   'watchDetail.noReference': 'No reference',
   'watchDetail.deleting': 'Deleting…',

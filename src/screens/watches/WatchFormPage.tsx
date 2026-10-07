@@ -235,6 +235,10 @@ export default function WatchFormPage() {
     [isEdit, existing.data],
   );
 
+  // Pre-existing pending invitations block a sale (backend: SharesNotFullyAccepted),
+  // so the checkbox is disabled until the invitee answers.
+  const hasPendingInvites = existingShares.some((sh) => sh.status === 'Pending');
+
   const createTrade = useMutation({
     mutationFn: tradesApi.create,
   });
@@ -367,7 +371,8 @@ export default function WatchFormPage() {
         return;
       }
     }
-    const skippedSale = sale.recordSale && validShares.length > 0;
+    // A sale cannot be recorded while any share is pending — existing or drafted here.
+    const skippedSale = sale.recordSale && (hasPendingInvites || validShares.length > 0);
 
     try {
       const id = (await saveWatch.mutateAsync(watchPayload)) as string;
@@ -537,8 +542,13 @@ export default function WatchFormPage() {
             label={t('watch.saleCheckbox')}
             checked={sale.recordSale}
             onChange={setSaleField('recordSale')}
-            disabled={submitting}
+            disabled={submitting || hasPendingInvites}
           />
+          {hasPendingInvites && (
+            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+              {t('watch.saleBlockedByPendingInvites')}
+            </p>
+          )}
           {sale.recordSale && (
             <div className="mt-4 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
