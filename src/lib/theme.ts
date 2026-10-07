@@ -40,7 +40,10 @@ export function getStoredTheme(): Theme {
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const set = () => root.classList.toggle('dark', theme === 'dark');
+  const set = () => {
+    root.classList.toggle('dark', theme === 'dark');
+    emitThemeChange(theme);
+  };
 
   // Preferred: cross-fade a snapshot of the page (crisp text, no per-glyph
   // color interpolation). Falls back to the .theme-transition class fade.
@@ -59,6 +62,33 @@ export function applyTheme(theme: Theme) {
   }
 
   set();
+}
+
+// Listeners let React components (e.g. the header toggle icon) stay in sync
+// when the theme changes from any source: a click, a login-time preference
+// apply, or a change made in another tab.
+type ThemeListener = (theme: Theme) => void;
+const listeners = new Set<ThemeListener>();
+
+function emitThemeChange(theme: Theme) {
+  for (const listener of listeners) listener(theme);
+}
+
+export function subscribeTheme(listener: ThemeListener): () => void {
+  listeners.add(listener);
+  listener(getStoredTheme());
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+// Another tab wrote to the shared key: reflect it here without a reload.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY && (e.newValue === 'light' || e.newValue === 'dark')) {
+      applyTheme(e.newValue);
+    }
+  });
 }
 
 export function toggleTheme(): Theme {

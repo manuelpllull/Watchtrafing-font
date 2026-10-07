@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Cog, Moon, Plus, Sun } from 'lucide-react';
 import { usersApi } from '@/api/users';
 import { useAuth } from '@/auth/AuthContext';
@@ -10,7 +10,7 @@ import type { TranslationKey } from '@/i18n/en';
 import { AccountMenu } from '@/components/AccountMenu';
 import { useToast } from '@/components/Toast';
 import { classNames } from '@/lib/format';
-import { getStoredTheme, toggleTheme, type Theme } from '@/lib/theme';
+import { subscribeTheme, toggleTheme, type Theme } from '@/lib/theme';
 
 interface NavItem {
   to: string;
@@ -38,7 +38,11 @@ export function Layout() {
   const location = useLocation();
   const { notify } = useToast();
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
+  const [theme, setTheme] = useState<Theme>('light');
+
+  // Read the theme from a store so login-time or cross-tab changes update
+  // the icon too, not just clicks inside this component.
+  useEffect(() => subscribeTheme(setTheme), []);
 
   // One query backs the badge, the dashboard card and the invitations page.
   const { pending } = useShareInvitations();
@@ -112,7 +116,6 @@ export function Layout() {
               type="button"
               onClick={() => {
                 const next = toggleTheme();
-                setTheme(next);
                 if (session) {
                   // Persist server-side so the preference follows the account.
                   usersApi

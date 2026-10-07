@@ -74,12 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
-  // Apply the user's stored color scheme whenever a session appears
-  // (login, or bootstrap from a still-valid token).
-  useEffect(() => {
-    if (session) applyPreference(session.colorScheme);
-  }, [session]);
-
   const logout = useCallback(() => {
     // Fire-and-forget server-side revocation of the refresh-token cookie;
     // local cleanup happens regardless of the outcome.
@@ -105,6 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const next = decode(res.accessToken);
     if (!next) throw new Error('Invalid token returned by server.');
     setSession(next);
+    // Login is the one moment where the account's stored preference should
+    // overwrite this device's. On a subsequent refresh, the JWT's claim is
+    // stale (it was minted at login) so we leave the local choice alone.
+    applyPreference(next.colorScheme);
   }, []);
 
   const value = useMemo<AuthContextValue>(
