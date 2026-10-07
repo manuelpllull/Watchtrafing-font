@@ -20,7 +20,7 @@ function InvitationTerms({ invitation }: { invitation: MyShareInvitation }) {
         : t('invitations.shareTerms', {
             ownership: formatPercent(invitation.ownershipPercentage),
             profit: formatPercent(invitation.profitPercentage),
-            money: formatMoney(invitation.moneyDown),
+            money: formatMoney(invitation.stake),
           })}
     </p>
   );

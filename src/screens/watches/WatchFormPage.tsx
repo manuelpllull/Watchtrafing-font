@@ -20,7 +20,7 @@ import { ShareBadge } from '@/components/ui/Badge';
 import { SearchCombobox, type ComboboxOption } from '@/components/SearchCombobox';
 import { Condition } from '@/api/types';
 import type { ClientResponse } from '@/api/types';
-import { fromIsoDateTime, toIsoDateTime } from '@/lib/format';
+import { formatMoney, formatPercent, fromIsoDateTime, toIsoDateTime } from '@/lib/format';
 import { searchUserOptions } from '@/lib/userSearch';
 import { useTranslation } from '@/i18n';
 
@@ -66,7 +66,6 @@ interface ShareDraft {
   externalName: string;
   ownershipPercentage: string;
   profitPercentage: string;
-  moneyDown: string;
   isConsignment: boolean;
 }
 
@@ -78,9 +77,15 @@ const emptyShare = (): ShareDraft => ({
   externalName: '',
   ownershipPercentage: '',
   profitPercentage: '',
-  moneyDown: '0',
   isConsignment: false,
 });
+
+// A share's cash stake is derived: its percentage of the watch's purchase price
+// (expenses are added per person server-side once the watch exists).
+const stakeOf = (share: ShareDraft, purchasePrice: number): number =>
+  share.isConsignment
+    ? 0
+    : Math.round((purchasePrice || 0) * (Number(share.ownershipPercentage) || 0)) / 100;
 
 const emptyForm: FormState = {
   brandId: '',
@@ -348,9 +353,8 @@ export default function WatchFormPage() {
     for (const s of validShares) {
       const own = Number(s.ownershipPercentage || 0);
       const prof = Number(s.profitPercentage || s.ownershipPercentage || 0);
-      const down = Number(s.moneyDown || 0);
       if (s.isConsignment) {
-        if (own !== 0 || down !== 0) {
+        if (own !== 0) {
           setError(makeApiError(t('watch.consignmentRules')));
           return;
         }
@@ -358,7 +362,7 @@ export default function WatchFormPage() {
           setError(makeApiError(t('watch.consignmentProfitRange')));
           return;
         }
-      } else if (own <= 0 || own > 100 || down < 0) {
+      } else if (own <= 0 || own > 100) {
         setError(makeApiError(t('watch.shareRules')));
         return;
       }
@@ -373,7 +377,6 @@ export default function WatchFormPage() {
           externalName: s.kind === 'external' ? s.externalName.trim() : null,
           ownershipPercentage: s.isConsignment ? 0 : Number(s.ownershipPercentage),
           profitPercentage: Number(s.profitPercentage || s.ownershipPercentage || 0),
-          moneyDown: s.isConsignment ? 0 : Number(s.moneyDown || 0),
           isConsignment: s.isConsignment,
         });
       }
@@ -624,7 +627,11 @@ export default function WatchFormPage() {
                       {s.isConsignment && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">{t('watchDetail.consignment')}</span>}
                     </p>
                     <p className="text-xs text-ink-faint">
-                      Own {s.ownershipPercentage}% · Profit {s.profitPercentage}% · Money down {s.moneyDown}
+                      {t('invitations.shareTerms', {
+                        ownership: formatPercent(s.ownershipPercentage),
+                        profit: formatPercent(s.profitPercentage),
+                        money: formatMoney(s.stake),
+                      })}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -636,7 +643,7 @@ export default function WatchFormPage() {
                         onClick={() => onRemoveExistingShare(s.id, s.userName ? `@${s.userName}` : s.externalName || t('watch.coOwner'))}
                         disabled={removeShare.isPending}
                       >
-                        {t('watch.removeInvitationTitle')}
+                        {t('common.remove')}
                       </button>
                     )}
                   </div>
@@ -661,6 +668,7 @@ export default function WatchFormPage() {
                   <ShareDraftRow
                     key={share.key}
                     share={share}
+                    purchasePrice={Number(form.purchasePrice) || 0}
                     onChange={(patch) =>
                       setShares((all) =>
                         all.map((s, i) => (i === index ? { ...s, ...patch } : s)),
@@ -731,11 +739,13 @@ function ClientSaleHint({ client }: { client: ClientResponse | undefined }) {
 // ── Co-owner draft row ─────────────────────────────────
 function ShareDraftRow({
   share,
+  purchasePrice,
   onChange,
   onRemove,
   disabled,
 }: {
   share: ShareDraft;
+  purchasePrice: number;
   onChange: (patch: Partial<ShareDraft>) => void;
   onRemove: () => void;
   disabled?: boolean;
@@ -826,15 +836,10 @@ function ShareDraftRow({
             placeholder={t('watch.profitDefaults')}
           />
         </Field>
-        <Field label={t('watch.moneyDown')}>
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            value={share.moneyDown}
-            onChange={(e) => onChange({ moneyDown: e.target.value })}
-            disabled={disabled || share.isConsignment}
-          />
+        <Field label={t('watch.moneyDown')} hint={t('watch.moneyDownHint')}>
+          <div className="flex h-9 items-center rounded-lg bg-ink/5 px-3 text-sm font-medium text-ink">
+            {formatMoney(stakeOf(share, purchasePrice))}
+          </div>
         </Field>
       </div>
 
@@ -846,7 +851,6 @@ function ShareDraftRow({
             onChange({
               isConsignment: e.target.checked,
               ownershipPercentage: e.target.checked ? '0' : share.ownershipPercentage,
-              moneyDown: e.target.checked ? '0' : share.moneyDown,
             })
           }
           disabled={disabled}

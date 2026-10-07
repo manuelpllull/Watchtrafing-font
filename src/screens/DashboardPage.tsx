@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageError, getMessage } from '@/components/ui/ErrorBanner';
 import { formatMoney, formatDate } from '@/lib/format';
 import { WatchStatusBadge } from '@/components/ui/Badge';
-import { TradeStatus, WatchStatus } from '@/api/types';
+import { TradeStatus, WatchStatus, type WatchResponse } from '@/api/types';
 import { useTranslation } from '@/i18n';
 
 export default function DashboardPage() {
@@ -50,9 +50,16 @@ export default function DashboardPage() {
     .filter((t) => t.status === TradeStatus.Pending)
     .slice(0, 5);
 
+  // "Collection value" is what I actually have invested, not the sticker price:
+  // for a watch I own it is my residual stake; for a shared one, my share's stake.
+  const myStake = (w: WatchResponse): number =>
+    session && w.ownerUserId === session.userId
+      ? w.ownerStake
+      : w.shares.find((s) => s.userId === session?.userId && s.status === 'Accepted')?.stake ?? 0;
+
   const collectionValue = myWatches
     .filter((w) => w.status !== WatchStatus.Sold)
-    .reduce((sum, w) => sum + (w.purchasePrice || 0), 0);
+    .reduce((sum, w) => sum + myStake(w), 0);
   const soldProfit = myWatches.reduce((sum, w) => sum + (w.profit || 0), 0);
 
   return (

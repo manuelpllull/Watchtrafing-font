@@ -137,8 +137,12 @@ export default function WatchDetailPage() {
           </p>
           <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
             {myPendingShare.isConsignment
-              ? `Consignment · ${formatPercent(myPendingShare.profitPercentage)}% profit`
-              : `${formatPercent(myPendingShare.ownershipPercentage)}% ownership · ${formatPercent(myPendingShare.profitPercentage)}% profit · ${formatMoney(myPendingShare.moneyDown)} money down`}
+              ? t('invitations.consignmentTerms', { profit: formatPercent(myPendingShare.profitPercentage) })
+              : t('invitations.shareTerms', {
+                  ownership: formatPercent(myPendingShare.ownershipPercentage),
+                  profit: formatPercent(myPendingShare.profitPercentage),
+                  money: formatMoney(myPendingShare.stake),
+                })}
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -251,11 +255,15 @@ export default function WatchDetailPage() {
               <li key={s.id} className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="text-sm font-medium">
-                    {s.userName || s.externalName || 'Unknown'}
-                    {s.isConsignment && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">consignment</span>}
+                    {s.userName || s.externalName || t('common.unknown')}
+                    {s.isConsignment && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">{t('watchDetail.consignment')}</span>}
                   </p>
                   <p className="text-xs text-ink-faint">
-                    Own {formatPercent(s.ownershipPercentage)} · Profit {formatPercent(s.profitPercentage)} · Money down {formatMoney(s.moneyDown)}
+                    {t('invitations.shareTerms', {
+                      ownership: formatPercent(s.ownershipPercentage),
+                      profit: formatPercent(s.profitPercentage),
+                      money: formatMoney(s.stake),
+                    })}
                   </p>
                 </div>
                 <ShareBadge status={s.status} />
@@ -430,7 +438,6 @@ function ShareModal({
     externalName: '',
     ownershipPercentage: '50',
     profitPercentage: '',
-    moneyDown: '0',
     isConsignment: false,
   });
   const [error, setError] = useState<ApiError | null>(null);
@@ -461,7 +468,6 @@ function ShareModal({
         externalName: form.isExternal ? form.externalName.trim() || null : null,
         ownershipPercentage: ownership,
         profitPercentage: form.isConsignment ? Number(form.profitPercentage || '0') : profit,
-        moneyDown: form.isConsignment ? 0 : Number(form.moneyDown),
         isConsignment: form.isConsignment,
       });
       await qc.invalidateQueries({ queryKey: ['watch', watchId] });
@@ -514,15 +520,12 @@ function ShareModal({
           {t('watch.consignmentShare')}
         </label>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label={t('watch.ownership')}>
             <Input type="number" step="0.01" min="0" max="100" value={form.isConsignment ? '0' : form.ownershipPercentage} onChange={set('ownershipPercentage')} disabled={form.isConsignment} />
           </Field>
           <Field label={t('watch.profit')}>
             <Input type="number" step="0.01" min="0" max="100" value={form.profitPercentage} onChange={set('profitPercentage')} placeholder={form.isConsignment ? t('watch.profitExample') : t('watch.profitDefaults')} />
-          </Field>
-          <Field label={t('watch.moneyDown')}>
-            <Input type="number" step="0.01" min="0" value={form.isConsignment ? '0' : form.moneyDown} onChange={set('moneyDown')} disabled={form.isConsignment} />
           </Field>
         </div>
         {error && <ErrorList error={error} />}

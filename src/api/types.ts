@@ -202,6 +202,8 @@ export interface WatchShareResponse {
   ownershipPercentage: number;
   profitPercentage: number;
   moneyDown: number;
+  /** Real capital: share of the face value plus expenses this person paid. */
+  stake: number;
   isConsignment: boolean;
   status: ShareStatus;
   createdAt: string;
@@ -216,6 +218,8 @@ export interface MyShareInvitation {
   ownershipPercentage: number;
   profitPercentage: number;
   moneyDown: number;
+  /** Real capital: share of the face value plus expenses the invitee paid. */
+  stake: number;
   isConsignment: boolean;
   status: ShareStatus;
   createdAt: string;
@@ -225,6 +229,8 @@ export interface WatchResponse {
   id: string;
   ownerUserId: string;
   ownerUserName: string | null;
+  /** Owner's own capital: residual ownership share of the price + their expenses. */
+  ownerStake: number;
   brand: Brand;
   additionalExpenses: AdditionalExpense[];
   shares: WatchShareResponse[];
@@ -283,7 +289,6 @@ export interface AddShareRequest {
   externalName?: string | null;
   ownershipPercentage: number;
   profitPercentage?: number | null;
-  moneyDown: number;
   isConsignment: boolean;
 }
 

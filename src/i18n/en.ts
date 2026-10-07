@@ -206,6 +206,7 @@ export const en = {
     'A pending trade will be created. The buyer must confirm or reject it before it completes.',
   'watch.recordSaleConfirm': 'Record sale',
 
+  'watch.moneyDownHint': 'Your share of the price plus expenses you paid.',
   // ── Watch detail ───────────────────────────────────────
   'watchDetail.noReference': 'No reference',
   'watchDetail.deleting': 'Deleting…',

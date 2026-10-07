@@ -203,6 +203,7 @@ export const ca: Catalog = {
 'watch.recordSaleConfirmMessage':
     'Es crearà una operació pendent. El comprador l\'ha de confirmar o rebutjar abans que es completi.',
 
+  'watch.moneyDownHint': 'La teva part del preu més les despeses que vas pagar.',
   // ── Watch detail ───────────────────────────────────────
   'watchDetail.noReference': 'Sense referència',
   'watchDetail.deleting': 'Eliminant…',

@@ -203,6 +203,7 @@ export const es: Catalog = {
     'Este cliente CRM vinculado se corresponde con un usuario de la plataforma. Se creará una operación pendiente y deberá confirmarla o rechazarla.',
 'watch.recordSaleConfirm': 'Registrar la venta',
 
+  'watch.moneyDownHint': 'Tu parte del precio más los gastos que pagaste.',
   // ── Watch detail ───────────────────────────────────────
   'watchDetail.noReference': 'Sin referencia',
   'watchDetail.deleting': 'Eliminando…',
